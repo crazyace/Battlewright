@@ -33,7 +33,9 @@ it's built from what you have:
 - **Talents**, read out of combat: the spec comes from where your points are, and
   talents change the rotation (see below). `/bw talents` lists which talents it uses,
   which don't change what you press, and Forever talents it doesn't know yet, with
-  their in-game description, so they can be added.
+  their in-game description, so they can be added. Talents are matched by their IDs,
+  so one the game renames keeps working, and your talent points come from the game
+  (or your level plus the Legacy Talented perk), so the build plan counts every point.
 - **Your main-hand weapon:** Ambush and Backstab only with a dagger. The game doesn't
   tell addons whether you're behind the target, so Backstab is suggested only after
   `/bw behind` (e.g. in a group, when the tank holds aggro), or while your Gouge
@@ -74,7 +76,7 @@ Out of melee range, the icon turns red and says so. Rupture's timer is kept per 
 | `/bw target` | Also show out of combat with an enemy targeted |
 | `/bw behind` | Assume you're behind the target: suggest Backstab with a dagger |
 | `/bw guide [solo\|group\|talents\|rotation]` | A window with two pages, **Rotation** and **Talents**. The Talents page: pick one of three builds (the best fit for the Solo/Group tab and your weapons is marked), see it laid over your own talent tree (green done, gold still to take, bright your next point, red not in the build; hover for the talent's text) and the plan by level. The Rotation page, with Solo and Group tabs (it opens on Group while you're in a party). Group: the tank pulls first, Backstab from behind is the builder, Rupture on bosses, Feint for threat, Expose Armor only without Sunder Armor. At the top it shows one typical fight as icons (opener, each cycle with Eureka! and Cold Blood where they go, elites, Kick, the Gouge trick, Backstab in groups); below it, written out: setup (weapons), opener, priority, cooldowns, the talents that shape it, and what's coming up. Built from your spells, talents and weapons; same rules as the icon |
-| `/bw talents` | Your spec and talents, and how the rotation uses them |
+| `/bw talents` | Your spec, talent points (with any from the Legacy Talented perk) and talents, and how the rotation uses them |
 | `/bw on`, `/bw off` | Turn it on or off |
 | `/bw reset` | Put the icon back in the middle |
 
