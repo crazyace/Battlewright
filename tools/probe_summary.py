@@ -135,12 +135,16 @@ def load(path):
 
 
 def summarize(db):
+    blocked = db.get("blocked") or {}
+    head = []
+    for func, rec in sorted(blocked.items()):
+        head.append(f"BLOCKED by the game: {func} x{rec.get('count')} ({rec.get('event')}, during {rec.get('during')})")
     runs = db.get("runs") or []
     if isinstance(runs, dict):
         runs = [runs[k] for k in sorted(runs, key=lambda k: int(k))]
     if not runs:
-        return "no combat recorded yet: /bwp combat, then fight something"
-    lines = []
+        return "\n".join(head + ["no combat recorded yet: /bwp combat, then fight something"])
+    lines = list(head)
     for run in runs:
         lines.append(f"combat {run.get('at')}: {run.get('samples')} samples")
         secret = []

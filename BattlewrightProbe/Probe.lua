@@ -54,6 +54,7 @@ local COMBAT_SPELLS = { "Sinister Strike", "Eviscerate", "Slice and Dice", "Back
 local combat = { armed = false }
 
 local function note(out, key, fn, ...)
+  combat.lastCheck = key
   local rec = out[key] or { calls = 0, readable = 0, secret = 0, missing = 0, errors = 0 }
   out[key] = rec
   rec.calls = rec.calls + 1
@@ -149,9 +150,6 @@ local function noteEvent(out, event, ...)
   for i = 1, args.n do if isSecret(args[i]) then anySecret = true end end
   if anySecret then rec.secret = rec.secret + 1 else rec.readable = rec.readable + 1 end
   if rec.example == nil and not anySecret then rec.example = sanitize({ unpack(args, 1, math.min(args.n, 5)) }) end
-  if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-    note(out, "CombatLogGetCurrentEventInfo", rawget(_G, "CombatLogGetCurrentEventInfo"))
-  end
 end
 
 local function combatStart()
@@ -284,16 +282,33 @@ end
 
 -- Wiring ----------------------------------------------------------------------------
 local events = CreateFrame("Frame")
-for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
+for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "ADDON_ACTION_FORBIDDEN", "ADDON_ACTION_BLOCKED" }) do
   pcall(events.RegisterEvent, events, e)
 end
+
+-- When the game blocks this addon ("...has been blocked from an action only
+-- available to the Blizzard UI"), it names the function: keep it, so we know
+-- which call to avoid.
+local function blocked(event, addon, func)
+  if addon ~= "BattlewrightProbe" then return end
+  local d = db()
+  d.blocked = d.blocked or {}
+  local key = tostring(func)
+  local rec = d.blocked[key] or { count = 0, event = event, first = now(), during = combat.lastCheck }
+  rec.count = rec.count + 1
+  d.blocked[key] = rec
+  say("the game blocked %s (during: %s)", key, tostring(combat.lastCheck))
+end
 -- Events whose arguments a helper could use instead of polling.
-local WATCHED = { "UNIT_SPELLCAST_SUCCEEDED", "UNIT_POWER_FREQUENT", "UNIT_AURA", "PLAYER_TARGET_CHANGED",
-  "COMBAT_LOG_EVENT_UNFILTERED" }
+-- (Not the combat log: reading it triggered "BattlewrightProbe has been blocked
+-- from an action only available to the Blizzard UI" on the beta, 2026-10-04.)
+local WATCHED = { "UNIT_SPELLCAST_SUCCEEDED", "UNIT_POWER_FREQUENT", "UNIT_AURA", "PLAYER_TARGET_CHANGED" }
 local watchable = {}
 for _, e in ipairs(WATCHED) do watchable[e] = pcall(events.RegisterEvent, events, e) end
 events:SetScript("OnEvent", function(_, event, ...)
-  if event == "PLAYER_REGEN_DISABLED" then
+  if event == "ADDON_ACTION_FORBIDDEN" or event == "ADDON_ACTION_BLOCKED" then
+    blocked(event, ...)
+  elseif event == "PLAYER_REGEN_DISABLED" then
     combatStart()
   elseif event == "PLAYER_REGEN_ENABLED" then
     if combat.out then combat.out.eventsRegistered = watchable end

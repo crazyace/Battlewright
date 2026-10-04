@@ -250,11 +250,15 @@ run = L.eval("""function() local r = BattlewrightProbeDB.runs[1]
 assert tuple(run) == (60, 60, True, True), tuple(run)
 out = "\n".join(L.globals().printed.values())
 assert "SECRET: aura expirationTime" in out, out
+# The game blocking a call: the probe records which function it was.
+L.globals().fire("ADDON_ACTION_FORBIDDEN", "BattlewrightProbe", "SomeProtectedFunction()")
+assert L.eval("function() return BattlewrightProbeDB.blocked['SomeProtectedFunction()'].count end")() == 1
 L.globals().SlashCmdList.BATTLEWRIGHTPROBE("export")
 export = Path(tempfile.mkdtemp()) / "export.json"
 export.write_text(L.globals().EXPORTTEXT)
 assert json.loads(export.read_text())["runs"][0]["samples"] == 60
 r = subprocess.run([sys.executable, str(R / "tools" / "probe_summary.py"), str(export)], capture_output=True, text=True)
+assert "BLOCKED by the game: SomeProtectedFunction() x1 (ADDON_ACTION_FORBIDDEN" in r.stdout, r.stdout
 assert r.returncode == 0 and "aura expirationTime: SECRET" in r.stdout and "hidden in combat: aura expirationTime" in r.stdout, r.stdout + r.stderr
 print(r.stdout)
 print("BATTLEWRIGHT TESTS PASSED")
