@@ -61,6 +61,7 @@ function UnitExists() return GAME.target end
 function UnitCanAttack() return GAME.target end
 function UnitHealth() return GAME.hpSecret and SECRET or GAME.hp * 1000 end
 function UnitHealthMax() return 1000 end
+function UnitClassification() return GAME.elite and "elite" or "normal" end
 local ids = {}
 C_Spell = {
   GetSpellInfo = function(name) if GAME.known[name] then ids[#ids + 1] = name; return { spellID = #ids } end end,
@@ -135,6 +136,11 @@ assert L.eval("function(ns) return ns.Spec.Detect('ROGUE', { Mutilate = {} }) en
 assert show(known=mut, cp=0, buffs=[["Slice and Dice", 130]]) == ("Mutilate", 0)
 assert show(cp=4, hp=0.4) == ("Eviscerate", 0)  # 4 is full with Mutilate; under 50% hp, no Rupture
 assert show(cp=4, hp=0.9) == ("Rupture", 0)     # long fight: Rupture first
+# Health hidden in combat: Eviscerate on ordinary mobs, Rupture only on elites.
+L.execute("SECRET = {}; function issecretvalue(v) return v == SECRET end")
+assert show(cp=4, hpSecret=True) == ("Eviscerate", 0)
+assert show(cp=4, hpSecret=True, elite=True) == ("Rupture", 0)
+L.execute("issecretvalue = nil; GAME.hpSecret = false; GAME.elite = false")
 # From stealth: Ambush needs a main-hand dagger; without one, Garrote.
 assert show(stealthed=True, cp=0) == ("Garrote", 0)
 L.execute("GAME.mainHand = 15"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")

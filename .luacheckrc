@@ -9,7 +9,7 @@ globals = {
 read_globals = {
   "C_AddOns", "C_Spell", "C_UnitAuras", "C_Timer", "Enum", "GetAddOnMetadata",
   "CreateFrame", "UIParent", "geterrorhandler", "issecretvalue",
-  "UnitClass", "UnitPower", "UnitPowerMax", "GetComboPoints", "UnitHealth", "UnitHealthMax",
+  "UnitClass", "UnitPower", "UnitPowerMax", "GetComboPoints", "UnitHealth", "UnitHealthMax", "UnitClassification",
   "UnitCanAttack", "UnitExists", "UnitAffectingCombat", "IsStealthed", "GetTime", "GetPowerRegen",
   "date", "tinsert", "UISpecialFrames", "ChatFontNormal", "UnitGUID",
   "C_ClassTalents", "C_Traits", "C_Item", "GetNumTalentTabs", "GetNumTalents", "GetTalentInfo",

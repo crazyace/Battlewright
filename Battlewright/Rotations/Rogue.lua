@@ -99,8 +99,15 @@ local function finisher(s, spec)
   end
   local full = (spec == "assassination" and known(s, "Mutilate")) and 4 or 5 -- Mutilate adds 2 at a time
   local rupture = spec ~= "combat" or talent(s, "Serrated Blades")
-  if rupture and cp >= full and hp > 0.5 and not s.debuffs["Rupture"] and ready(s, "Rupture") then
-    return act(s, "Rupture", talent(s, "Serrated Blades") and "keep Rupture up (Serrated Blades)" or "long fight: bleed it")
+  -- A long fight is worth bleeding. Health is hidden in combat, so then only
+  -- elites and bosses count (or anything, with Serrated Blades): ordinary mobs
+  -- die before Rupture pays off.
+  local long
+  if s.target.hp then long = s.target.hp > 0.5 else long = s.target.elite or talent(s, "Serrated Blades") end
+  if rupture and cp >= full and long and not s.debuffs["Rupture"] and ready(s, "Rupture") then
+    local why = talent(s, "Serrated Blades") and "keep Rupture up (Serrated Blades)"
+      or (s.target.elite and "elite: bleed it" or "long fight: bleed it")
+    return act(s, "Rupture", why)
   end
   if (cp >= full or (cp >= 3 and hp < 0.25)) and ready(s, "Eviscerate") then
     return act(s, "Eviscerate", cp >= full and "full combo points" or "target nearly dead")

@@ -1,6 +1,6 @@
 -- Battlewright: a snapshot of what the rotation needs, read from the game.
 --   { now, energy (nil when hidden), energyMax, regen, cp, stealthed, inCombat,
---     target = { exists, attackable, hp (0-1) },
+--     target = { exists, attackable, hp (0-1), elite (elite, rare elite or boss) },
 --     buffs = { [name] = secondsLeft }, debuffs = { [name] = secondsLeft },   (mine on the target)
 --     spells = { [name] = { id, cost, cooldown (s left), usable, noPower } } }   (known spells only)
 --   estimated = true when buffs/debuffs come from Tracker.lua, not the game.
@@ -179,6 +179,10 @@ function State.Read()
     s.target.casting = State.Casting()
     local hp, max = UnitHealth("target"), UnitHealthMax("target")
     if not secret(hp) and not secret(max) and type(max) == "number" and max > 0 then s.target.hp = hp / max end
+    if UnitClassification then
+      local ok, c = pcall(UnitClassification, "target")
+      s.target.elite = ok and not secret(c) and (c == "elite" or c == "rareelite" or c == "worldboss") or false
+    end
   end
   local _, class = UnitClass("player")
   for _, name in ipairs(State.SPELLS[class] or {}) do s.spells[name] = spell(name, now) end
