@@ -374,7 +374,7 @@ L.eval("function(ns) ns.Guide.SetBuild('combat') end")(ns)
 ttext = L.eval(talents_text)(ns)
 assert ttext.startswith("Combat: sturdy: if you'd rather not die") and "Best fit for you: Assassination: Mutilate" in ttext, ttext
 assert "Not in this build: Malice 5, Remorseless Attacks 2, Ruthlessness 3" in ttext, ttext
-# The tree: drawn from the nodes' positions, each node colored by its status.
+# The tree: drawn from the nodes' positions, as if the build's points were spent.
 L.eval("""function(ns) local get = ns.Talents.Get
   ns._sassy = get
   ns.Talents.Get = function() local r = get()
@@ -395,22 +395,26 @@ nodes = L.eval("""function(ns) local out = {}
   end
   return out end""")(ns)
 nodes = dict(nodes.items())
-# Malice 5 done; Ruthlessness/Remorseless not taken here, so Ruthlessness would be next,
-# but it isn't in the list: Lethality is the next one shown as "todo" until its turn.
-assert nodes["Malice"] == "done 5/5" and nodes["Improved Gouge"] == "off 2/3 grey", nodes
-assert nodes["Lethality"] == "todo 0/5" and nodes["Mutilate"] == "todo 0/1", nodes
+# The build's talents are lit with the build's ranks, whatever you have (no Lethality
+# yet, still 5/5); talents not in it are greyed at 0, even your Improved Gouge 2.
+assert nodes["Malice"] == "build 5/5" and nodes["Improved Gouge"] == "none 0/3 grey", nodes
+assert nodes["Lethality"] == "build 5/5" and nodes["Mutilate"] == "build 1/1", nodes
 assert nodes["Puncturing Wounds"] == "none 0/3 grey" and nodes["Camouflage"] == "none 0/5 grey", nodes
-# Looking at another build: your Malice isn't in it, so it's greyed (red edge), not lit.
+heads = L.eval("function(ns) local o = {} for i, h in ipairs(ns.Guide.frame.trees) do o[i] = h.text end return o end")(ns)
+# Each tree's heading: the build's points in it (of the talents drawn: Malice 5, Lethality 5, Mutilate 1).
+assert list(heads.values()) == ["Assassination  11", "Combat  0", "Subtlety  0"], list(heads.values())
+# Another build: your Malice isn't in it, so it's greyed at 0, nothing red.
 L.eval("function(ns) ns.Guide.SetBuild('combat') end")(ns)
 other = dict(L.eval("""function(ns) local out = {} for _, n in ipairs(ns.Guide.frame.nodes) do
   if n.shown ~= false then out[n.name] = n.status .. (n.icon.gray and " grey" or "") end end return out end""")(ns).items())
-assert other["Malice"] == "off grey" and other["Lethality"] == "none grey", other
+assert other["Malice"] == "none grey" and other["Lethality"] == "none grey", other
+assert other["Puncturing Wounds"] == "none grey", other
 L.eval("function(ns) ns.Guide.SetBuild(nil) end")(ns)
 # The subtitle is short enough to clear the tabs.
 assert L.eval("function(ns) return ns.Guide.frame.subtitle.text end")(ns) == "Assassination  -  level 19"
 # The tooltip line says what the build takes.
 line = L.eval("function(ns) for _, n in ipairs(ns.Guide.frame.nodes) do if n.name == 'Lethality' then return n.line end end end")(ns)
-assert line == "In this build: still to take (this build: 5 of 5 ranks)", line
+assert line == "In this build: 5 of 5 ranks", line
 # Layout: the build buttons, the tree and the cards under it don't overlap
 # (in game the cards were drawn over the tree).
 lay = L.eval("""function(ns) local f = ns.Guide.frame
@@ -420,7 +424,7 @@ lay = L.eval("""function(ns) local f = ns.Guide.frame
   local topNode
   for _, n in ipairs(f.nodes) do if n.shown then topNode = math.max(topNode or -math.huge, n.point[5]) end end
   for _, c in ipairs(f.lines) do
-    if c.text.text and c.text.text:find("^Lit: the talents this build takes") then legendTop = c.card.point[5] end
+    if c.text.text and c.text.text:find("^The tree as this build fills it") then legendTop = c.card.point[5] end
   end
   return lowestNode, buttonBottom, legendTop, topNode end""")(ns)
 lowest, buttons, legend, top_node = lay
