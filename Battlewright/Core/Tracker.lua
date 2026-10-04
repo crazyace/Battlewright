@@ -68,7 +68,10 @@ function Tracker.Remaining(onTarget, now)
   return out
 end
 
+-- (Another unit's cast can arrive with hidden details: 1 of 9 events on the
+-- beta, 2026-10-03 21:59. Skip those rather than compare a secret value.)
 ns:On("UNIT_SPELLCAST_SUCCEEDED", function(unit, _, spellID)
+  if secret(unit) then return end
   if unit == "player" then Tracker.Cast(spellID, GetTime()) end
 end)
 -- Without a readable GUID a debuff can't be told apart per target: forget it.

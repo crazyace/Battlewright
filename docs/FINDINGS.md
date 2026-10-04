@@ -95,3 +95,20 @@ Kick x2, Sinister Strike x4, Eviscerate x1.
 
 What an addon can and can't use in combat on Forever is now known; see the tables
 above. Further probing isn't needed for the Rogue rotation.
+
+## Round 5 (2026-10-03 21:59 and 22:02, 39 + 29 samples)
+
+Nothing changes for the rotation; two details:
+
+- **One cast event had a hidden value:** 1 of 9 `UNIT_SPELLCAST_SUCCEEDED` events in the
+  21:59 fight. The target was casting (12 hidden `UnitCastingInfo` reads, and Kick was
+  cast twice), so it was most likely the mob's own cast. The tracker now skips events
+  whose unit is hidden, so it never compares a hidden value.
+- **Auras read fine before a fight starts:** at 22:02, the sample taken as combat began
+  read Blessing of Might with its expiration time. From the second sample on, aura
+  reads were blocked again.
+
+**In-game check of the cast-based timer:** Battlewright asked for Slice and Dice about 2
+seconds before it ran out, which is what it's built to do. So its estimate of the
+duration (6 + 3 s per combo point) matches the game.
+
