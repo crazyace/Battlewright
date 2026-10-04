@@ -125,8 +125,7 @@ Lint: `luacheck .`
 
 ## Credits
 
-The guide window's warm brown-and-gold palette started from **ForeverDungeonJournal**
-by Exehn.
+The guide window's first look followed **ForeverDungeonJournal** by Exehn.
 
 ## License
 
