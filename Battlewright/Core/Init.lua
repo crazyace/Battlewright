@@ -36,6 +36,7 @@ local DEFAULTS = {
   specOverride = false, -- false = from your talents
   showOutOfCombat = false, -- also show with an attackable target out of combat
   assumeBehind = false, -- suggest Backstab (the game doesn't say where you stand)
+  guideMode = false, -- the guide's Solo/Group choice; false = Group while in a party, else Solo
 }
 
 ns:On("ADDON_LOADED", function(name)

@@ -69,6 +69,13 @@ local function line(parent, anchor, point, alpha)
   return t
 end
 
+-- "solo" or "group": what you picked, else Group while you're in a party.
+function Guide.Mode()
+  local picked = ns.db and ns.db.guideMode
+  if picked == "solo" or picked == "group" then return picked end
+  return (IsInGroup and IsInGroup()) and "group" or "solo"
+end
+
 -- Sections and the rotation path for the current character, or nil and why not.
 function Guide.Build()
   local _, class = UnitClass("player")
@@ -78,8 +85,9 @@ function Guide.Build()
   local s = ns.State.Read()
   if not s then return nil, "open the guide out of combat" end
   local spec, how = ns.Spec.Detect(class, s.spells)
-  local sections = rotation.Guide(s, spec, UnitLevel and UnitLevel("player") or nil)
-  local path = rotation.GuidePath and rotation.GuidePath(s, spec) or nil
+  local mode = Guide.Mode()
+  local sections = rotation.Guide(s, spec, UnitLevel and UnitLevel("player") or nil, mode)
+  local path = rotation.GuidePath and rotation.GuidePath(s, spec, mode) or nil
   return sections, spec, how, path
 end
 
@@ -116,6 +124,22 @@ local function create()
   f.subtitle:SetTextColor(unpack(THEME.muted))
   local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
   close:SetPoint("TOPRIGHT", -3, -3)
+
+  -- Solo / Group: two small tabs at the left of the title band.
+  f.modes = {}
+  for i, mode in ipairs({ "solo", "group" }) do
+    local b = CreateFrame("Button", nil, f, "BackdropTemplate")
+    b:SetSize(64, 22)
+    b:SetPoint("TOPLEFT", 22 + (i - 1) * 70, -21)
+    backdrop(b, WHITE, EDGE, 10, 3)
+    b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    b.text:SetPoint("CENTER")
+    b.text:SetText(mode == "solo" and "Solo" or "Group")
+    if b.SetHighlightTexture then b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD") end
+    b:SetScript("OnClick", function() Guide.SetMode(mode) end)
+    b.mode = mode
+    f.modes[mode] = b
+  end
 
   -- The page: a parchment panel holding the scrolling content.
   local page = panel(f)
@@ -221,9 +245,32 @@ local function hideAll(f)
   for _, w in ipairs(f.words) do w:Hide() end
 end
 
+local function paintModes(f, current)
+  for mode, b in pairs(f.modes) do
+    local on = mode == current
+    if b.SetBackdropColor then
+      if on then
+        b:SetBackdropColor(0.30, 0.22, 0.10, 0.98)
+        b:SetBackdropBorderColor(THEME.title[1], THEME.title[2], THEME.title[3], 1)
+      else
+        b:SetBackdropColor(0.12, 0.115, 0.105, 0.98)
+        b:SetBackdropBorderColor(0.48, 0.40, 0.27, 1)
+      end
+    end
+    b.text:SetTextColor(unpack(on and THEME.title or THEME.muted))
+  end
+end
+
+function Guide.SetMode(mode)
+  ns.db.guideMode = mode
+  Guide.Refresh()
+end
+
 function Guide.Refresh()
   local f = Guide.frame
   if not (f and f:IsShown()) then return end
+  Guide.mode = Guide.Mode() -- read by tests
+  paintModes(f, Guide.mode)
   local sections, specOrWhy, _, path = Guide.Build()
   Guide.sections, Guide.path = sections, path -- read by tests
   hideAll(f)
@@ -359,7 +406,7 @@ end
 
 -- Keep it current while it's open (out of combat: talents read then).
 for _, event in ipairs({ "SPELLS_CHANGED", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_LEVEL_UP",
-  "TRAIT_CONFIG_UPDATED", "PLAYER_TALENT_UPDATE", "PLAYER_REGEN_ENABLED" }) do
+  "TRAIT_CONFIG_UPDATED", "PLAYER_TALENT_UPDATE", "PLAYER_REGEN_ENABLED", "GROUP_ROSTER_UPDATE" }) do
   ns:On(event, function()
     if not (InCombatLockdown and InCombatLockdown()) then Guide.Refresh() end
   end)

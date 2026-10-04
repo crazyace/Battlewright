@@ -263,6 +263,35 @@ assert cells == 13, cells  # Ambush; Remorseless, Ambush; SnD, SS, Eureka!, SS, 
 # The window drew a line per row, with the spell's icon.
 lines = L.eval("function(ns) local n = 0 for _, l in ipairs(ns.Guide.frame.lines) do if l.text.text then n = n + 1 end end return n end")(ns)
 assert lines >= 15, lines
+# Group mode (/bw guide group): Backstab is the builder, Rupture on bosses,
+# Feint for threat, the tank pulls first; no Gouge trick or chain pulling.
+assert L.eval("function(ns) return ns.Guide.mode end")(ns) == "solo"
+show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Backstab": 60, "Ambush": 60,
+            "Garrote": 50, "Gouge": 45, "Kick": 25, "Eureka!": 0, "Evasion": 0, "Rupture": 25, "Feint": 20,
+            "Expose Armor": 25, "Vanish": 0}, cp=0, combat=False)
+L.globals().SlashCmdList.BATTLEWRIGHT("guide group")
+assert L.eval("function(ns) return ns.Guide.mode, ns.db.guideMode end")(ns) == ("group", "group")
+gpath = L.eval(path_text)(ns)
+print(gpath)
+assert "From stealth: tank pulls > Ambush(behind)" in gpath, gpath
+assert "Each cycle: Slice and Dice(1-2 pts) > Backstabx3 > Eureka!(at 3 pts) > Backstabx2 > Eviscerate(at 5) > repeat" in gpath, gpath
+assert "Bosses: Backstabx5 > Rupture(at 5) > Backstabx5 > Eviscerate(at 5)" in gpath, gpath
+assert "Threat: Feint(when ready)" in gpath, gpath
+assert "Gouge trick" not in gpath and "After a kill" not in gpath and "Behind (groups)" not in gpath, gpath
+gtext = L.eval("""function(ns) local out = {} for _, sec in ipairs(ns.Guide.sections) do
+  for _, r in ipairs(sec.rows) do out[#out + 1] = r.text end end return table.concat(out, "\\n") end""")(ns)
+for want in ["Let the tank pull and hold the mob first", "Backstab is your builder: stand behind the mob",
+             "Sinister Strike only when you can't get behind", "Rupture at 5 on bosses and long fights",
+             "Expose Armor on bosses only when no warrior is using Sunder Armor", "Feint whenever it's ready",
+             "Evasion if the mob turns on you", "Vanish to drop all threat", "it matters less in groups"]:
+    assert want in gtext, want
+assert "Gouge, step behind" not in gtext and "Pull the next mob inside" not in gtext, gtext
+# Back to Solo with the tab.
+L.eval("function(ns) ns.Guide.SetMode('solo') end")(ns)
+assert L.eval("function(ns) return ns.Guide.mode end")(ns) == "solo"
+assert "Gouge trick" in L.eval(path_text)(ns)
+L.eval("function(ns) ns.db.guideMode = false end")(ns)
+
 # With a sword and Mutilate: no Ambush/Backstab, finish at 4, Eureka! at 0+... (4 - 2x2 = 0).
 L.execute("GAME.mainHand = 7"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
 show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Mutilate": 60, "Gouge": 45, "Cold Blood": 0,

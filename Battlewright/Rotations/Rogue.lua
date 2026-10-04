@@ -222,7 +222,9 @@ local COMING = {
   { 30, "Deadly Poison", "poison damage over time", 2835 },
 }
 
-function Rogue.Guide(s, spec, level)
+-- mode: "solo" (the mob faces you) or "group" (a tank holds it; you're behind).
+function Rogue.Guide(s, spec, level, mode)
+  local group = mode == "group"
   local sections = {}
   local function section(title) local sec = { title = title, rows = {} }; sections[#sections + 1] = sec; return sec end
   local function row(sec, spell, text, id)
@@ -257,6 +259,10 @@ function Rogue.Guide(s, spec, level)
     or (known(s, "Mutilate") and "Mutilate") or (dagger(s) and known(s, "Backstab") and "Backstab") or "Sinister Strike"
 
   local open = section("From stealth")
+  if group then
+    row(open, nil, "Let the tank pull and hold the mob first, then open from behind: pulling it off the tank "
+      .. "costs the group more than your opener earns.")
+  end
   if known(s, "Premeditation") then row(open, "Premeditation", "Premeditation first: 2 combo points.") end
   if dagger(s) and known(s, "Ambush") then
     row(open, "Ambush", "Ambush, from behind: your hardest hit.")
@@ -267,7 +273,7 @@ function Rogue.Guide(s, spec, level)
   end
   if known(s, "Cheap Shot") then row(open, "Cheap Shot", "Cheap Shot: a stun, from any side.") end
   if #open.rows == 0 then row(open, "Sinister Strike", "No opener yet: walk up and Sinister Strike.") end
-  if remorse > 0 then
+  if remorse > 0 and not group then
     row(open, "Remorseless Attacks", ("Remorseless Attacks: a kill gives your next Sinister Strike, Backstab, "
       .. "Ambush or Mutilate +%d%% crit for 20 s. Pull the next mob inside those 20 s and open with %s; don't "
       .. "spend it on a stray Sinister Strike between pulls."):format(20 * remorse, hardest), remorseID)
@@ -275,7 +281,7 @@ function Rogue.Guide(s, spec, level)
 
   local prio = section("In combat, top to bottom")
   if known(s, "Kick") then row(prio, "Kick", "Kick the moment the target casts (big icon).") end
-  if known(s, "Gouge") and (known(s, "Mutilate") or (dagger(s) and known(s, "Backstab"))) then
+  if not group and known(s, "Gouge") and (known(s, "Mutilate") or (dagger(s) and known(s, "Backstab"))) then
     row(prio, "Gouge", ("Gouge, step behind, %s while it holds."):format(known(s, "Mutilate") and "Mutilate" or "Backstab"))
   end
   if known(s, "Slice and Dice") then
@@ -288,7 +294,9 @@ function Rogue.Guide(s, spec, level)
   if known(s, "Rupture") then
     row(prio, "Rupture", talent(s, "Serrated Blades") and ("Rupture at %d, kept up (Serrated Blades)."):format(full)
       or (spec == "combat" and "Rupture: skipped (Eviscerate is better for Combat)."
-      or ("Rupture at %d on elites and bosses; normal mobs die first."):format(full)))
+      or (group and ("Rupture at %d on bosses and long fights, kept up: group mobs live long enough for it to "
+        .. "pay off."):format(full)
+      or ("Rupture at %d on elites and bosses; normal mobs die first."):format(full))))
   end
   if known(s, "Eviscerate") then
     row(prio, "Eviscerate", ("Eviscerate at %d combo points; earlier if the mob is nearly dead "
@@ -301,11 +309,18 @@ function Rogue.Guide(s, spec, level)
     if known(s, "Hemorrhage") then row(prio, "Hemorrhage", "Hemorrhage to build.") end
   end
   if dagger(s) and known(s, "Backstab") then
-    row(prio, "Backstab", "Backstab when you're behind (groups: /bw behind).")
+    row(prio, "Backstab", group and ("Backstab is your builder: stand behind the mob. About 50% more damage per "
+      .. "energy than Sinister Strike. (Type /bw behind so the icon suggests it.)")
+      or "Backstab when you're behind (groups: /bw behind).")
   end
   if known(s, "Sinister Strike") then
     row(prio, "Sinister Strike", (known(s, "Mutilate") and "Sinister Strike if Mutilate isn't usable."
-      or "Sinister Strike to build otherwise."))
+      or ((group and dagger(s) and known(s, "Backstab")) and "Sinister Strike only when you can't get behind."
+      or "Sinister Strike to build otherwise.")))
+  end
+  if group and known(s, "Expose Armor") then
+    row(prio, "Expose Armor", "Expose Armor on bosses only when no warrior is using Sunder Armor (they don't stack)."
+      .. (talent(s, "Improved Expose Armor") and " Improved Expose Armor refunds combo points at 5." or ""))
   end
 
   local cds = section("Cooldowns (small icon)")
@@ -317,7 +332,14 @@ function Rogue.Guide(s, spec, level)
   if known(s, "Adrenaline Rush") then row(cds, "Adrenaline Rush", "Adrenaline Rush when it's ready.") end
   if known(s, "Blade Flurry") then row(cds, "Blade Flurry", "Blade Flurry, best with two mobs.") end
   if known(s, "Preparation") then row(cds, "Preparation", "Preparation once Vanish and Evasion are used.") end
-  if known(s, "Evasion") then row(cds, "Evasion", "Evasion when a fight goes wrong (your call).") end
+  if group and known(s, "Feint") then
+    row(cds, "Feint", "Feint whenever it's ready on long fights: it lowers your threat, so the mob stays on the tank.")
+  end
+  if known(s, "Evasion") then
+    row(cds, "Evasion", group and "Evasion if the mob turns on you, then let the tank take it back."
+      or "Evasion when a fight goes wrong (your call).")
+  end
+  if group and known(s, "Vanish") then row(cds, "Vanish", "Vanish to drop all threat in an emergency.") end
   if #cds.rows == 0 then row(cds, nil, "None yet.") end
 
   local tal = section("Talents that shape this")
@@ -328,8 +350,9 @@ function Rogue.Guide(s, spec, level)
   if talent(s, "Relentless Strikes") then row(tal, nil, "Relentless Strikes: 5-point finishers refund 25 energy.") end
   if talent(s, "Ruthlessness") then row(tal, nil, "Ruthlessness: finishers often leave 1 combo point.") end
   if remorse > 0 then
-    row(tal, nil, ("Remorseless Attacks %d: +%d%% crit on the first hit after a kill (20 s): chain pulls.")
-      :format(remorse, 20 * remorse), remorseID)
+    row(tal, nil, ("Remorseless Attacks %d: +%d%% crit on the first hit after a kill (20 s): %s.")
+      :format(remorse, 20 * remorse, group and "it matters less in groups, where the tank sets the pace"
+        or "chain pulls"), remorseID)
   end
   if #tal.rows == 0 then row(tal, nil, "None that change what you press (/bw talents lists them all).") end
 
@@ -349,13 +372,15 @@ end
 -- (×n) } or { text } (a word between icons, like "step behind"). The builder
 -- count is fixed (a real fight can take one more or fewer), and it's split
 -- around Eureka! the way the icon suggests it.
-function Rogue.GuidePath(s, spec)
+function Rogue.GuidePath(s, spec, mode)
+  local group = mode == "group"
   local lanes = {}
   local function step(spell, note, count)
     return { spell = spell, id = s.spells[spell] and s.spells[spell].id, note = note, count = count }
   end
   local full = fullCP(s)
   local build = known(s, "Mutilate") and "Mutilate"
+    or (group and dagger(s) and known(s, "Backstab") and "Backstab")
     or (spec == "subtlety" and known(s, "Hemorrhage") and "Hemorrhage") or "Sinister Strike"
   local per = build == "Mutilate" and 2 or 1
   local builds = math.ceil(full / per) -- presses to reach full combo points
@@ -367,13 +392,14 @@ function Rogue.GuidePath(s, spec)
   elseif known(s, "Cheap Shot") then first = "Cheap Shot" end
   if first then
     local steps = {}
+    if group then steps[#steps + 1] = { text = "tank pulls" } end
     if known(s, "Premeditation") then steps[#steps + 1] = step("Premeditation", "+2 pts") end
     steps[#steps + 1] = step(first, first == "Cheap Shot" and "stun" or "behind")
     lanes[#lanes + 1] = { label = "From stealth", steps = steps }
   end
   -- Remorseless Attacks: chain pulls.
   local remorse = s.talents and s.talents["Remorseless Attacks"] or 0
-  if remorse > 0 then
+  if remorse > 0 and not group then
     local hit = (dagger(s) and known(s, "Ambush") and "Ambush") or build
     lanes[#lanes + 1] = { label = "After a kill", steps = {
       { spell = "Remorseless Attacks", id = s.talentIDs and s.talentIDs["Remorseless Attacks"], note = "kill" },
@@ -400,7 +426,7 @@ function Rogue.GuidePath(s, spec)
 
   -- Elites: Rupture before the Eviscerate cycle.
   if known(s, "Rupture") and (spec ~= "combat" or talent(s, "Serrated Blades")) then
-    lanes[#lanes + 1] = { label = "Elites", steps = {
+    lanes[#lanes + 1] = { label = group and "Bosses" or "Elites", steps = {
       step(build, nil, builds > 1 and builds or nil), step("Rupture", ("at %d"):format(full)),
       step(build, nil, builds > 1 and builds or nil), step("Eviscerate", ("at %d"):format(full)) } }
   end
@@ -408,11 +434,14 @@ function Rogue.GuidePath(s, spec)
     lanes[#lanes + 1] = { label = "Mob casts", steps = { step("Kick", "any time") } }
   end
   local behind = known(s, "Mutilate") and "Mutilate" or (dagger(s) and known(s, "Backstab") and "Backstab")
-  if known(s, "Gouge") and behind then
+  if group and known(s, "Feint") then
+    lanes[#lanes + 1] = { label = "Threat", steps = { step("Feint", "when ready") } }
+  end
+  if not group and known(s, "Gouge") and behind then
     lanes[#lanes + 1] = { label = "Gouge trick", steps = {
       step("Gouge", "front"), { text = "step behind" }, step(behind, "4 s window") } }
   end
-  if dagger(s) and known(s, "Backstab") and build == "Sinister Strike" then
+  if not group and dagger(s) and known(s, "Backstab") and build == "Sinister Strike" then
     lanes[#lanes + 1] = { label = "Behind (groups)", steps = {
       step("Backstab", "replaces SS", builds > 1 and builds or nil), step("Eviscerate", ("at %d"):format(full)) } }
   end
