@@ -16,5 +16,5 @@ read_globals = {
   "InCombatLockdown", "GetInventoryItemID", "UnitCastingInfo", "UnitChannelInfo",
   "C_SpellBook", "GetNumSpellTabs", "GetSpellTabInfo", "GetSpellBookItemInfo", "GetSpellBaseCooldown",
   "GetNumTrainerServices", "GetTrainerServiceInfo", "GetTrainerServiceLevelReq", "GetTrainerServiceDescription",
-  "UnitLevel", "UnitName", "IsInGroup", "GameTooltip",
+  "UnitLevel", "UnitName", "IsInGroup", "GameTooltip", "STANDARD_TEXT_FONT",
 }
