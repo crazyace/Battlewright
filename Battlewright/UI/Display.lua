@@ -18,20 +18,21 @@ local QUESTION = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 -- The spell's icon: by spell ID first (a lookup by name can miss; Kick showed
 -- a question mark on the beta, 2026-10-04), then by name.
-local icons = {} -- [name] = last icon found
+local icons = {} -- [name or id] = last icon found
 local function texture(name, id)
+  local cacheKey = name or id
   if C_Spell and C_Spell.GetSpellTexture then
     for _, key in ipairs({ id or false, name }) do
       if key then
         local ok, tex = pcall(C_Spell.GetSpellTexture, key)
         if ok and tex and not (issecretvalue and issecretvalue(tex)) then
-          icons[name] = tex
+          if cacheKey then icons[cacheKey] = tex end
           return tex
         end
       end
     end
   end
-  return icons[name] or QUESTION
+  return cacheKey and icons[cacheKey] or QUESTION
 end
 
 Display.Texture = texture

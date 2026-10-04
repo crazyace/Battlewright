@@ -217,6 +217,10 @@ L.globals().SlashCmdList.BATTLEWRIGHT("spec assassination")
 show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Backstab": 60, "Ambush": 60,
             "Garrote": 50, "Gouge": 45, "Kick": 25, "Eureka!": 0, "Evasion": 0}, cp=0, combat=False)
 L.execute("GAME.mainHand = 15"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
+# Sassy's talents: Remorseless Attacks 2 (chain pulls), Ruthlessness 3.
+L.eval("""function(ns) ns._get = ns.Talents.Get
+  ns.Talents.Get = function() return { ranks = { ["Remorseless Attacks"] = 2, ["Ruthlessness"] = 3, ["Malice"] = 5 },
+    spellIDs = { ["Remorseless Attacks"] = 14144 }, points = { 10 }, list = {} } end end""")(ns)
 L.globals().SlashCmdList.BATTLEWRIGHT("guide")
 guide = L.eval("""function(ns) local out = {}
   for _, sec in ipairs(ns.Guide.sections) do
@@ -228,7 +232,10 @@ print(guide)
 for want in ["# From stealth", "Ambush, from behind", "Kick the moment the target casts",
              "Gouge, step behind, Backstab while it holds", "Eviscerate at 5 combo points",
              "Eureka! at 3 combo points", "Main hand: a dagger", "Off hand: empty",
-             "Level 20: Rupture", "Level 22: Vanish", "20 points in Assassination: Mutilate"]:
+             "Level 20: Rupture", "Level 22: Vanish", "20 points in Assassination: Mutilate",
+             "Ambush or Mutilate +40% crit for 20 s. Pull the next mob inside those 20 s and open with Ambush",
+             "Why: +20% attack speed on both weapons for 25 energy", "Skip it on a mob that's about to die",
+             "Remorseless Attacks 2: +40% crit on the first hit after a kill"]:
     assert want in guide, want
 # Priority order matches the rotation: Kick, Gouge, Slice and Dice, Eviscerate, builders.
 order = [guide.index(x) for x in ["Kick the moment", "Gouge, step behind", "Slice and Dice when", "Eviscerate at", "Backstab when", "Sinister Strike to build"]]
@@ -248,10 +255,11 @@ print(path)
 assert "From stealth: Ambush(behind)" in path, path
 # Eureka! at 3 combo points: 3 Sinister Strikes, Eureka!, 2 more, Eviscerate at 5.
 assert "Each cycle: Slice and Dice(1-2 pts) > Sinister Strikex3 > Eureka!(at 3 pts) > Sinister Strikex2 > Eviscerate(at 5) > repeat" in path, path
+assert "After a kill: Remorseless Attacks(kill) > next pull, 20 s > Ambush(+40% crit)" in path, path
 assert "Mob casts: Kick(any time)" in path and "Gouge trick: Gouge(front) > step behind > Backstab(4 s window)" in path, path
 assert "Behind (groups): Backstab(replaces SS)x5" in path or "Behind (groups): Backstabx5(replaces SS)" in path, path
 cells = L.eval("function(ns) local n = 0 for _, c in ipairs(ns.Guide.frame.cells) do if c.icon.tex then n = n + 1 end end return n end")(ns)
-assert cells == 11, cells  # Ambush; SnD, SS, Eureka!, SS, Eviscerate; Kick; Gouge, Backstab; Backstab, Eviscerate
+assert cells == 13, cells  # Ambush; Remorseless, Ambush; SnD, SS, Eureka!, SS, Eviscerate; Kick; Gouge, Backstab; Backstab, Eviscerate
 # The window drew a line per row, with the spell's icon.
 lines = L.eval("function(ns) local n = 0 for _, l in ipairs(ns.Guide.frame.lines) do if l.text.text then n = n + 1 end end return n end")(ns)
 assert lines >= 15, lines
@@ -270,6 +278,7 @@ path2 = L.eval(path_text)(ns)
 assert "Each cycle: Slice and Dice(1-2 pts) > Eureka!(first) > Mutilatex2 > Cold Blood(crit) > Eviscerate(at 4) > repeat" in path2, path2
 assert "From stealth" not in path2 and "Gouge trick: Gouge(front) > step behind > Mutilate(4 s window)" in path2, path2
 L.globals().SlashCmdList.BATTLEWRIGHT("guide")  # closes it
+L.eval("function(ns) ns.Talents.Get = ns._get end")(ns)
 assert L.eval("function(ns) return ns.Guide.frame.shown end")(ns) is False
 L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("GAME.mainHand = nil; GAME.combat = true"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")

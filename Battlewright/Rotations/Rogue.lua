@@ -247,6 +247,15 @@ function Rogue.Guide(s, spec, level)
     row(setup, nil, "Off hand: empty. You can Dual Wield: a second weapon is free damage.")
   end
 
+  -- Remorseless Attacks (Forever): after killing a non-trivial enemy, +20% crit
+  -- per rank on your next Sinister Strike, Backstab, Ambush, Mutilate or
+  -- Ghostly Strike, for 20 s. So: pull the next mob inside those 20 s, and
+  -- spend it on your hardest hit (Ambush from stealth).
+  local remorse = s.talents and s.talents["Remorseless Attacks"] or 0
+  local remorseID = s.talentIDs and s.talentIDs["Remorseless Attacks"]
+  local hardest = (dagger(s) and known(s, "Ambush") and "Ambush")
+    or (known(s, "Mutilate") and "Mutilate") or (dagger(s) and known(s, "Backstab") and "Backstab") or "Sinister Strike"
+
   local open = section("From stealth")
   if known(s, "Premeditation") then row(open, "Premeditation", "Premeditation first: 2 combo points.") end
   if dagger(s) and known(s, "Ambush") then
@@ -258,6 +267,11 @@ function Rogue.Guide(s, spec, level)
   end
   if known(s, "Cheap Shot") then row(open, "Cheap Shot", "Cheap Shot: a stun, from any side.") end
   if #open.rows == 0 then row(open, "Sinister Strike", "No opener yet: walk up and Sinister Strike.") end
+  if remorse > 0 then
+    row(open, "Remorseless Attacks", ("Remorseless Attacks: a kill gives your next Sinister Strike, Backstab, "
+      .. "Ambush or Mutilate +%d%% crit for 20 s. Pull the next mob inside those 20 s and open with %s; don't "
+      .. "spend it on a stray Sinister Strike between pulls."):format(20 * remorse, hardest), remorseID)
+  end
 
   local prio = section("In combat, top to bottom")
   if known(s, "Kick") then row(prio, "Kick", "Kick the moment the target casts (big icon).") end
@@ -265,7 +279,10 @@ function Rogue.Guide(s, spec, level)
     row(prio, "Gouge", ("Gouge, step behind, %s while it holds."):format(known(s, "Mutilate") and "Mutilate" or "Backstab"))
   end
   if known(s, "Slice and Dice") then
-    row(prio, "Slice and Dice", "Slice and Dice when it's down (1-2 combo points), or with 2 s left.")
+    row(prio, "Slice and Dice", "Slice and Dice when it's down (1-2 combo points), or with 2 s left. Why: +20% "
+      .. "attack speed on both weapons for 25 energy, and your auto-attacks are a big share of your damage. "
+      .. "Over a short pull that's about a 1-2 point Eviscerate's worth; it pays more the longer the fight, on "
+      .. "elites, and once poisons (28+) proc off every hit. Skip it on a mob that's about to die.")
   end
   if known(s, "Venom") then row(prio, "Venom", ("Venom at %d combo points when it's down."):format(full)) end
   if known(s, "Rupture") then
@@ -310,8 +327,9 @@ function Rogue.Guide(s, spec, level)
   for _, name in ipairs(names) do row(tal, nil, ("%s %d: %s"):format(name, s.talents[name], Rogue.USED[name])) end
   if talent(s, "Relentless Strikes") then row(tal, nil, "Relentless Strikes: 5-point finishers refund 25 energy.") end
   if talent(s, "Ruthlessness") then row(tal, nil, "Ruthlessness: finishers often leave 1 combo point.") end
-  if talent(s, "Remorseless Attacks") then
-    row(tal, nil, "Remorseless Attacks: after a kill your next builder or Ambush likely crits (20 s): chain pulls.")
+  if remorse > 0 then
+    row(tal, nil, ("Remorseless Attacks %d: +%d%% crit on the first hit after a kill (20 s): chain pulls.")
+      :format(remorse, 20 * remorse), remorseID)
   end
   if #tal.rows == 0 then row(tal, nil, "None that change what you press (/bw talents lists them all).") end
 
@@ -352,6 +370,14 @@ function Rogue.GuidePath(s, spec)
     if known(s, "Premeditation") then steps[#steps + 1] = step("Premeditation", "+2 pts") end
     steps[#steps + 1] = step(first, first == "Cheap Shot" and "stun" or "behind")
     lanes[#lanes + 1] = { label = "From stealth", steps = steps }
+  end
+  -- Remorseless Attacks: chain pulls.
+  local remorse = s.talents and s.talents["Remorseless Attacks"] or 0
+  if remorse > 0 then
+    local hit = (dagger(s) and known(s, "Ambush") and "Ambush") or build
+    lanes[#lanes + 1] = { label = "After a kill", steps = {
+      { spell = "Remorseless Attacks", id = s.talentIDs and s.talentIDs["Remorseless Attacks"], note = "kill" },
+      { text = "next pull, 20 s" }, step(hit, ("+%d%% crit"):format(20 * remorse)) } }
   end
 
   -- One cycle: Slice and Dice, build (Eureka! where its charges reach the

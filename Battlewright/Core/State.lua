@@ -176,6 +176,7 @@ function State.Read()
     target = { exists = yes(UnitExists("target")) },
     spells = {},
     talents = ns.Talents.Get().ranks,
+    talentIDs = ns.Talents.Get().spellIDs, -- for icons (the guide)
     mainHand = weapon(),
     offHand = weaponIn(17),
     behind = ns.db and ns.db.assumeBehind or false,
