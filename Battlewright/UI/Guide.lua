@@ -572,17 +572,26 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
         nd.line = STATUS[status][2] and (goal > 0 and ("%s (this build: %d of %d ranks)"):format(STATUS[status][2], goal,
           e.max or goal) or STATUS[status][2])
         nd.icon:SetTexture(ns.Display.Texture(e.name, e.spellID))
-        nd.icon:SetDesaturated(status == "none")
-        nd.icon:SetAlpha(status == "none" and 0.45 or 1)
+        -- Only the build's talents are lit: this is the build, not your current
+        -- tree. Talents you have that it doesn't use are greyed with a red edge.
+        local lit = goal > 0
+        nd.icon:SetDesaturated(not lit)
+        nd.icon:SetAlpha(lit and 1 or (status == "off" and 0.7 or 0.45))
         if nd.SetBackdropBorderColor then
           local c = STATUS[status][1]
           nd:SetBackdropColor(0.05, 0.04, 0.03, 0.9)
           nd:SetBackdropBorderColor(c[1], c[2], c[3], 1)
         end
-        -- Rank / max ranks on every talent, like the game's own talent window;
-        -- what the build wants is the border color (and the tooltip).
-        nd.rank:SetText(e.max and ("%d/%d"):format(rank, e.max) or (rank > 0 and tostring(rank) or ""))
-        nd.rank:SetTextColor(unpack(status == "none" and THEME.muted or { 1, 1, 1 }))
+        -- The build's talents: your rank / the build's ranks. The rest: your
+        -- rank / max (red when you have points there the build doesn't use).
+        if lit then
+          nd.rank:SetText(("%d/%d"):format(rank, goal))
+          nd.rank:SetTextColor(1, 1, 1)
+        else
+          nd.rank:SetText(e.max and ("%d/%d"):format(rank, e.max) or (rank > 0 and tostring(rank) or ""))
+          nd.rank:SetTextColor(unpack(status == "off" and { 1, 0.35, 0.3 } or THEME.muted))
+        end
+        nd.lit = lit
         local x0 = (e.tab - 1) * colWidth + (colWidth - 4 * NODE_GAP) / 2
         nd:ClearAllPoints()
         nd:SetPoint("TOPLEFT", f.content, "TOPLEFT", x0 + col * NODE_GAP, top - row * NODE_GAP)
@@ -590,8 +599,9 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
       end
     end
     y = top - rows * NODE_GAP - 2
-    y = addCard("Borders: green done, gold still to take, bright your next point, red not in this build. "
-      .. "Numbers: your rank / max ranks. Hover a talent for its text and how many ranks this build takes.", y)
+    y = addCard("Lit: the talents this build takes, numbered your rank / the build's ranks, with a green "
+      .. "border when done, gold still to take, bright for your next point. Greyed: not in this build; a red "
+      .. "edge means you have points there it doesn't use. Hover a talent for its text.", y)
   end
 
   y = addHeader("The plan", y)

@@ -342,14 +342,22 @@ L.eval("""function(ns) local get = ns.Talents.Get
     return r end
   ns.Guide.SetBuild(nil) end""")(ns)
 nodes = L.eval("""function(ns) local out = {}
-  for _, n in ipairs(ns.Guide.frame.nodes) do if n.shown ~= false then out[n.name] = n.status .. " " .. (n.rank.text or "") end end
+  for _, n in ipairs(ns.Guide.frame.nodes) do
+    if n.shown ~= false then out[n.name] = n.status .. " " .. (n.rank.text or "") .. (n.icon.gray and " grey" or "") end
+  end
   return out end""")(ns)
 nodes = dict(nodes.items())
 # Malice 5 done; Ruthlessness/Remorseless not taken here, so Ruthlessness would be next,
 # but it isn't in the list: Lethality is the next one shown as "todo" until its turn.
-assert nodes["Malice"] == "done 5/5" and nodes["Improved Gouge"] == "off 2/3", nodes
+assert nodes["Malice"] == "done 5/5" and nodes["Improved Gouge"] == "off 2/3 grey", nodes
 assert nodes["Lethality"] == "todo 0/5" and nodes["Mutilate"] == "todo 0/1", nodes
-assert nodes["Puncturing Wounds"] == "none 0/3" and nodes["Camouflage"] == "none 0/5", nodes
+assert nodes["Puncturing Wounds"] == "none 0/3 grey" and nodes["Camouflage"] == "none 0/5 grey", nodes
+# Looking at another build: your Malice isn't in it, so it's greyed (red edge), not lit.
+L.eval("function(ns) ns.Guide.SetBuild('combat') end")(ns)
+other = dict(L.eval("""function(ns) local out = {} for _, n in ipairs(ns.Guide.frame.nodes) do
+  if n.shown ~= false then out[n.name] = n.status .. (n.icon.gray and " grey" or "") end end return out end""")(ns).items())
+assert other["Malice"] == "off grey" and other["Lethality"] == "none grey", other
+L.eval("function(ns) ns.Guide.SetBuild(nil) end")(ns)
 # The subtitle is short enough to clear the tabs.
 assert L.eval("function(ns) return ns.Guide.frame.subtitle.text end")(ns) == "Assassination  -  level 19"
 # The tooltip line says what the build takes.
@@ -364,7 +372,7 @@ lay = L.eval("""function(ns) local f = ns.Guide.frame
   local topNode
   for _, n in ipairs(f.nodes) do if n.shown then topNode = math.max(topNode or -math.huge, n.point[5]) end end
   for _, c in ipairs(f.lines) do
-    if c.text.text and c.text.text:find("^Borders: green done") then legendTop = c.card.point[5] end
+    if c.text.text and c.text.text:find("^Lit: the talents this build takes") then legendTop = c.card.point[5] end
   end
   return lowestNode, buttonBottom, legendTop, topNode end""")(ns)
 lowest, buttons, legend, top_node = lay
