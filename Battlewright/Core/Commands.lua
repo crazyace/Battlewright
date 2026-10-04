@@ -8,7 +8,7 @@ local function help()
   print("  /bw spec <assassination|combat|subtlety|auto>")
   print("  /bw target            also show it out of combat when you target an enemy")
   print("  /bw behind            assume you're behind the target (suggests Backstab with a dagger)")
-  print("  /bw guide [solo|group] your rotation written out: spells, talents, weapons")
+  print("  /bw guide [solo|group|talents|rotation]  your rotation and talent build")
   print("  /bw talents           your spec and talents, and which ones the rotation uses")
   print("  /bw on | off          turn Battlewright on or off")
   print("  /bw reset             put the icon back in the middle")
@@ -69,7 +69,10 @@ SlashCmdList.BATTLEWRIGHT = function(msg)
     db.assumeBehind = not db.assumeBehind
     ns.print("assume you're behind the target (Backstab): %s", db.assumeBehind and "on" or "off")
   elseif cmd == "guide" then
-    if arg == "solo" or arg == "group" then
+    if arg == "rotation" or arg == "talents" then
+      ns.db.guidePage = arg
+      if not (ns.Guide.frame and ns.Guide.frame:IsShown()) then ns.Guide.Toggle() else ns.Guide.Refresh() end
+    elseif arg == "solo" or arg == "group" then
       ns.db.guideMode = arg
       if not (ns.Guide.frame and ns.Guide.frame:IsShown()) then ns.Guide.Toggle() else ns.Guide.Refresh() end
     else

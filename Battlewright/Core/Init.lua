@@ -37,6 +37,8 @@ local DEFAULTS = {
   showOutOfCombat = false, -- also show with an attackable target out of combat
   assumeBehind = false, -- suggest Backstab (the game doesn't say where you stand)
   guideMode = false, -- the guide's Solo/Group choice; false = Group while in a party, else Solo
+  guidePage = "rotation", -- the guide's page: "rotation" or "talents"
+  guideBuild = false, -- the talent build shown; false = the best fit
 }
 
 ns:On("ADDON_LOADED", function(name)

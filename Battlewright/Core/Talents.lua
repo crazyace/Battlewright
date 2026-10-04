@@ -3,7 +3,8 @@
 -- in one Traits tree; which spec a node belongs to comes from a per-class group
 -- ID map (the class file's tabGroups). Ported from Gearwright's reader.
 --   Talents.Get() -> { ranks = { [name] = rank }, spellIDs = { [name] = id },
---                      points = { [tab] = n }, list = { { name, rank, max, tab, spellID } } }
+--                      points = { [tab] = n }, list = { { name, rank, max, tab, spellID, posX, posY } } }
+--   (posX/posY: the node's place in the tree, Traits only; the guide draws the tree from them)
 local _, ns = ...
 
 local Talents = {}
@@ -36,7 +37,8 @@ local function readTraits(tabGroups)
         out.ranks[name] = math.max(out.ranks[name] or 0, rank)
         out.spellIDs[name] = def.spellID
         out.points[tab] = (out.points[tab] or 0) + rank
-        out.list[#out.list + 1] = { name = name, rank = rank, max = info.maxRanks, tab = tab, spellID = def.spellID }
+        out.list[#out.list + 1] = { name = name, rank = rank, max = clean(info.maxRanks), tab = tab, spellID = def.spellID,
+          posX = clean(info.posX), posY = clean(info.posY) }
       end
     end
   end

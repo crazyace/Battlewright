@@ -298,14 +298,52 @@ plan = L.eval("""function(ns) local R = ns.Rotations.ROGUE
   return p.next.name, p.next.now, p.points, p.spent, p.offPlan[1] end""")(ns)
 assert tuple(plan) == ("Malice", True, 10, 5, "Improved Gouge 2"), tuple(plan)
 
-# The guide's talent build for Sassy: level 19, Malice 5, Remorseless Attacks 2,
-# Ruthlessness 3, a dagger, solo: Mutilate build, on track, Lethality next.
+# The Talents page: Sassy (level 19, Malice 5, Remorseless Attacks 2, Ruthlessness 3,
+# a dagger, solo) gets the Mutilate build, on track, Lethality next. The build
+# text isn't on the Rotation page any more.
+assert "Lethality crits and Mutilate at 30" not in guide
+talents_text = """function(ns) local out = {} for _, r in ipairs(ns.Guide.talents.rows) do out[#out + 1] = r.text end
+  return table.concat(out, "\\n") end"""
+L.globals().SlashCmdList.BATTLEWRIGHT("guide talents")
+assert L.eval("function(ns) return ns.Guide.page end")(ns) == "talents"
+ttext = L.eval(talents_text)(ns)
 for want in ["Assassination: Mutilate: Ambush openers, Lethality crits and Mutilate at 30.",
              "Your points match this build. Next: Lethality at level 20.", "Levels 20-24: Lethality 5",
              "Level 25: Relentless Strikes 1", "Level 26: Cold Blood 1", "Levels 27-29: Improved Slice and Dice 3",
              "Level 30: Mutilate 1", "Also good: Combat: sturdy, if you'd rather not die (equip an off-hand weapon"]:
-    assert want in guide, want
-assert "Not in this build" not in guide
+    assert want in ttext, want
+assert "Not in this build" not in ttext
+# Pick another build: the plan follows it and names the best fit.
+L.eval("function(ns) ns.Guide.SetBuild('combat') end")(ns)
+ttext = L.eval(talents_text)(ns)
+assert ttext.startswith("Combat: sturdy: if you'd rather not die") and "Best fit for you: Assassination: Mutilate" in ttext, ttext
+assert "Not in this build: Malice 5, Remorseless Attacks 2, Ruthlessness 3" in ttext, ttext
+# The tree: drawn from the nodes' positions, each node colored by its status.
+L.eval("""function(ns) local get = ns.Talents.Get
+  ns._sassy = get
+  ns.Talents.Get = function() local r = get()
+    r.ranks = { ["Malice"] = 5, ["Improved Gouge"] = 2 }
+    r.list = {
+      { name = "Malice", rank = 5, max = 5, tab = 1, spellID = 14138, posX = 2220, posY = 2130 },
+      { name = "Improved Gouge", rank = 2, max = 3, tab = 1, spellID = 13741, posX = 1020, posY = 2130 },
+      { name = "Lethality", rank = 0, max = 5, tab = 1, spellID = 14128, posX = 2220, posY = 3330 },
+      { name = "Mutilate", rank = 0, max = 1, tab = 1, spellID = 1310707, posX = 1620, posY = 4530 },
+      { name = "Puncturing Wounds", rank = 0, max = 3, tab = 2, spellID = 1224716, posX = 5020, posY = 2730 },
+      { name = "Camouflage", rank = 0, max = 5, tab = 3, spellID = 13975, posX = 9080, posY = 2130 },
+    }
+    return r end
+  ns.Guide.SetBuild(nil) end""")(ns)
+nodes = L.eval("""function(ns) local out = {}
+  for _, n in ipairs(ns.Guide.frame.nodes) do if n.shown ~= false then out[n.name] = n.status .. " " .. (n.rank.text or "") end end
+  return out end""")(ns)
+nodes = dict(nodes.items())
+# Malice 5 done; Ruthlessness/Remorseless not taken here, so Ruthlessness would be next,
+# but it isn't in the list: Lethality is the next one shown as "todo" until its turn.
+assert nodes["Malice"] == "done 5/5" and nodes["Improved Gouge"] == "off 2", nodes
+assert nodes["Lethality"] == "todo 0/5" and nodes["Mutilate"] == "todo 0/1", nodes
+assert nodes["Puncturing Wounds"] == "none " and nodes["Camouflage"] == "none ", nodes
+L.eval("function(ns) ns.Talents.Get = ns._sassy end")(ns)
+L.eval("function(ns) ns.Guide.SetBuild(nil) ns.Guide.SetPage('rotation') end")(ns)
 
 # Group mode (/bw guide group): Backstab is the builder, Rupture on bosses,
 # Feint for threat, the tank pulls first; no Gouge trick or chain pulling.
@@ -332,11 +370,14 @@ for want in ["Let the tank pull and hold the mob first", "Backstab is your build
 assert "Gouge, step behind" not in gtext and "Pull the next mob inside" not in gtext, gtext
 # Group with a dagger: the Backstab build. Sassy's points are all in it (a different
 # order), so nothing is off-plan; its early Combat points are due now.
+L.eval("function(ns) ns.Guide.SetPage('talents') end")(ns)
+gt = L.eval(talents_text)(ns)
+L.eval("function(ns) ns.Guide.SetPage('rotation') end")(ns)
 for want in ["Backstab (dagger, groups): you have a dagger in your main hand", "Due now: Improved Eviscerate 3",
              "Due now: Puncturing Wounds 3", "Your next point (level 20): Improved Eviscerate.",
              "Also good: Assassination: Mutilate, if you also play solo"]:
-    assert want in gtext, want
-assert "Not in this build" not in gtext
+    assert want in gt, want
+assert "Not in this build" not in gt
 # Back to Solo with the tab.
 L.eval("function(ns) ns.Guide.SetMode('solo') end")(ns)
 assert L.eval("function(ns) return ns.Guide.mode end")(ns) == "solo"

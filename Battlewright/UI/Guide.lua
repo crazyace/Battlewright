@@ -88,7 +88,16 @@ function Guide.Build()
   local mode = Guide.Mode()
   local sections = rotation.Guide(s, spec, UnitLevel and UnitLevel("player") or nil, mode)
   local path = rotation.GuidePath and rotation.GuidePath(s, spec, mode) or nil
-  return sections, spec, how, path
+  local talents = rotation.TalentGuide
+    and rotation.TalentGuide(s, mode, UnitLevel and UnitLevel("player") or nil, ns.db and ns.db.guideBuild or nil) or nil
+  if talents then talents.ranks, talents.list = s.talents or {}, ns.Talents.Get().list end
+  return sections, spec, how, path, talents
+end
+
+-- "rotation" or "talents": the page the window shows.
+function Guide.Page()
+  local page = ns.db and ns.db.guidePage
+  return page == "talents" and "talents" or "rotation"
 end
 
 local function create()
@@ -160,7 +169,25 @@ local function create()
     f.layer:SetFrameLevel((tonumber(f.content:GetFrameLevel()) or 1) + 5)
   end
 
+  -- Rotation / Talents: page tabs at the right of the title band.
+  f.pages = {}
+  for i, key in ipairs({ "rotation", "talents" }) do
+    local b = CreateFrame("Button", nil, f, "BackdropTemplate")
+    b:SetSize(76, 22)
+    b:SetPoint("TOPRIGHT", -40 - (2 - i) * 82, -21)
+    backdrop(b, WHITE, EDGE, 10, 3)
+    b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    b.text:SetPoint("CENTER")
+    b.text:SetText(key == "rotation" and "Rotation" or "Talents")
+    if b.SetHighlightTexture then b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD") end
+    b:SetScript("OnClick", function() Guide.SetPage(key) end)
+    f.pages[key] = b
+  end
+
   f.headers = {} -- section titles: { text, rule }
+  f.builds = {}  -- talents page: build buttons
+  f.nodes = {}   -- talents page: tree nodes
+  f.trees = {}   -- talents page: a heading per tree
   f.lines = {}   -- cards: { card, icon, text }
   f.lanes = {}   -- path lanes: a card each
   f.cells = {}   -- path icons: { icon, note, count }
@@ -243,11 +270,14 @@ local function hideAll(f)
   for _, l in ipairs(f.lanes) do l:Hide() end
   for _, c in ipairs(f.cells) do c.icon:Hide(); c.note:Hide(); c.count:Hide() end
   for _, w in ipairs(f.words) do w:Hide() end
+  for _, b in ipairs(f.builds) do b:Hide() end
+  for _, n in ipairs(f.nodes) do n:Hide() end
+  for _, h in ipairs(f.trees) do h:Hide() end
 end
 
-local function paintModes(f, current)
-  for mode, b in pairs(f.modes) do
-    local on = mode == current
+local function paintTabs(tabs, current)
+  for key, b in pairs(tabs) do
+    local on = key == current
     if b.SetBackdropColor then
       if on then
         b:SetBackdropColor(0.30, 0.22, 0.10, 0.98)
@@ -263,20 +293,33 @@ end
 
 function Guide.SetMode(mode)
   ns.db.guideMode = mode
+  ns.db.guideBuild = nil -- the best fit changes with the mode
+  Guide.Refresh()
+end
+
+function Guide.SetPage(page)
+  ns.db.guidePage = page
+  Guide.Refresh()
+end
+
+function Guide.SetBuild(key)
+  ns.db.guideBuild = key
   Guide.Refresh()
 end
 
 function Guide.Refresh()
   local f = Guide.frame
   if not (f and f:IsShown()) then return end
-  Guide.mode = Guide.Mode() -- read by tests
-  paintModes(f, Guide.mode)
-  local sections, specOrWhy, _, path = Guide.Build()
-  Guide.sections, Guide.path = sections, path -- read by tests
+  Guide.mode, Guide.page = Guide.Mode(), Guide.Page() -- read by tests
+  paintTabs(f.modes, Guide.mode)
+  paintTabs(f.pages, Guide.page)
+  local sections, specOrWhy, _, path, talents = Guide.Build()
+  Guide.sections, Guide.path, Guide.talents = sections, path, talents -- read by tests
   hideAll(f)
   local level = UnitLevel and UnitLevel("player")
   local specName = sections and (specOrWhy:gsub("^%l", string.upper)) or nil
-  f.subtitle:SetText(specName and ("Your rotation  -  %s%s"):format(specName, level and ("  -  level " .. level) or "") or "")
+  f.subtitle:SetText(specName and ("%s  -  %s%s"):format(Guide.page == "talents" and "Your talents" or "Your rotation",
+    specName, level and ("  -  level " .. level) or "") or "")
 
   local y, nh, nl, nlane, nc, nw = 0, 0, 0, 0, 0, 0
 
@@ -381,6 +424,8 @@ function Guide.Refresh()
 
   if not sections then
     addCard(specOrWhy)
+  elseif Guide.page == "talents" then
+    y = Guide.DrawTalents(f, talents, y, addHeader, addCard)
   else
     if path and #path > 0 then
       addHeader("At a glance")
@@ -392,6 +437,156 @@ function Guide.Refresh()
     end
   end
   f.content:SetHeight(-y + 10)
+end
+
+-- Talents page ----------------------------------------------------------------------
+-- The build picker, your tree with the build laid over it, then the plan.
+local BUILD_ORDER = { "mutilate", "backstab", "combat" }
+local NODE, NODE_GAP, TREE_HEAD = 30, 42, 20
+local TREE_NAMES = { "Assassination", "Combat", "Subtlety" }
+local STATUS = { -- border color and tooltip line
+  done = { { 0.25, 0.85, 0.30 }, "In this build: done" },
+  todo = { { 1.00, 0.80, 0.34 }, "In this build: still to take" },
+  next = { { 1.00, 1.00, 0.55 }, "Your next point" },
+  off = { { 0.85, 0.25, 0.20 }, "Not in this build" },
+  none = { { 0.35, 0.32, 0.28 }, nil },
+}
+
+local function buildButton(f, i)
+  return pooled(f.builds, i, function()
+    local b = CreateFrame("Button", nil, f.content, "BackdropTemplate")
+    backdrop(b, WHITE, EDGE, 10, 3)
+    b.name = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    b.name:SetPoint("TOP", 0, -6)
+    b.tag = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    b.tag:SetPoint("TOP", b.name, "BOTTOM", 0, -2)
+    b.tag:SetTextColor(unpack(THEME.muted))
+    if b.SetHighlightTexture then b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD") end
+    return b
+  end)
+end
+
+local function node(f, i)
+  return pooled(f.nodes, i, function()
+    local n = CreateFrame("Button", nil, f.content, "BackdropTemplate")
+    n:SetSize(NODE + 6, NODE + 6)
+    backdrop(n, WHITE, EDGE, 10, 2)
+    n.icon = n:CreateTexture(nil, "ARTWORK")
+    n.icon:SetSize(NODE, NODE)
+    n.icon:SetPoint("CENTER")
+    n.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    n.rank = n:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+    n.rank:SetPoint("BOTTOMRIGHT", n, "BOTTOMRIGHT", 3, -3)
+    n:SetScript("OnEnter", function(self)
+      if not GameTooltip then return end
+      GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+      if self.spellID and GameTooltip.SetSpellByID then GameTooltip:SetSpellByID(self.spellID) else GameTooltip:SetText(self.name or "") end
+      if self.line then GameTooltip:AddLine(self.line, 1, 0.82, 0.3, true) end
+      GameTooltip:Show()
+    end)
+    n:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    return n
+  end)
+end
+
+local function treeHead(f, i)
+  return pooled(f.trees, i, function()
+    local h = f.content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    h:SetJustifyH("CENTER")
+    h:SetTextColor(unpack(THEME.title))
+    return h
+  end)
+end
+
+-- Draws the talents page from `y` down; returns the y below it.
+function Guide.DrawTalents(f, tg, y, addHeader, addCard)
+  if not tg then addCard("No talent builds for your class yet."); return y end
+  local rotation = ns.Rotations[select(2, UnitClass("player"))]
+
+  -- Build picker: the three builds, the best fit marked, the shown one lit.
+  addHeader("Pick a build")
+  local width = (INNER - 8) / #BUILD_ORDER
+  for i, key in ipairs(BUILD_ORDER) do
+    local b = buildButton(f, i)
+    local build = rotation.BUILDS[key]
+    b:ClearAllPoints()
+    b:SetPoint("TOPLEFT", f.content, "TOPLEFT", (i - 1) * (width + 4), y)
+    b:SetSize(width, 36)
+    b.name:SetText(build.name)
+    b.tag:SetText(key == tg.picks[1][1] and "best fit for you" or "")
+    local on = key == tg.key
+    if b.SetBackdropColor then
+      b:SetBackdropColor(unpack(on and { 0.30, 0.22, 0.10, 0.98 } or THEME.card))
+      b:SetBackdropBorderColor(unpack(on and { THEME.title[1], THEME.title[2], THEME.title[3], 1 } or THEME.border))
+    end
+    b.name:SetTextColor(unpack(on and THEME.title or THEME.text))
+    b:SetScript("OnClick", function() Guide.SetBuild(key) end)
+    b:Show()
+  end
+  y = y - 36 - 4
+
+  -- The tree, from the game's own layout (Traits positions). Without
+  -- positions (no Traits tree) only the plan below is shown.
+  local list = tg.list or {}
+  local minX, minY = {}, nil
+  for _, e in ipairs(list) do
+    if e.posX and e.posY and e.tab then
+      minX[e.tab] = math.min(minX[e.tab] or e.posX, e.posX)
+      minY = math.min(minY or e.posY, e.posY)
+    end
+  end
+  if minY then
+    addHeader(tg.build.name .. " on your tree")
+    local target = rotation.BuildRanks(tg.build, 21)
+    local nextName = tg.plan and tg.plan.next and tg.plan.next.name
+    local colWidth = INNER / 3
+    local have, want = {}, {}
+    for _, e in ipairs(list) do
+      have[e.tab] = (have[e.tab] or 0) + (e.rank or 0)
+      want[e.tab] = (want[e.tab] or 0) + (target[e.name] or 0)
+    end
+    for tab = 1, 3 do
+      local h = treeHead(f, tab)
+      h:ClearAllPoints()
+      h:SetPoint("TOP", f.content, "TOPLEFT", (tab - 0.5) * colWidth, y)
+      h:SetText(("%s  %d / %d"):format(TREE_NAMES[tab], have[tab] or 0, want[tab] or 0))
+      h:Show()
+    end
+    local top, rows, n = y - TREE_HEAD, 0, 0
+    for _, e in ipairs(list) do
+      if e.posX and e.posY and e.tab then
+        local col = math.floor((e.posX - minX[e.tab]) / 600 + 0.5)
+        local row = math.floor((e.posY - minY) / 600 + 0.5)
+        rows = math.max(rows, row + 1)
+        n = n + 1
+        local nd = node(f, n)
+        local rank, goal = e.rank or 0, target[e.name] or 0
+        local status = (e.name == nextName and "next") or (goal > 0 and (rank >= goal and "done" or "todo"))
+          or (rank > 0 and "off") or "none"
+        nd.status, nd.name, nd.spellID, nd.line = status, e.name, e.spellID, STATUS[status][2]
+        nd.icon:SetTexture(ns.Display.Texture(e.name, e.spellID))
+        nd.icon:SetDesaturated(status == "none")
+        nd.icon:SetAlpha(status == "none" and 0.45 or 1)
+        if nd.SetBackdropBorderColor then
+          local c = STATUS[status][1]
+          nd:SetBackdropColor(0.05, 0.04, 0.03, 0.9)
+          nd:SetBackdropBorderColor(c[1], c[2], c[3], 1)
+        end
+        nd.rank:SetText(goal > 0 and ("%d/%d"):format(rank, goal) or (rank > 0 and tostring(rank) or ""))
+        local x0 = (e.tab - 1) * colWidth + (colWidth - 4 * NODE_GAP) / 2
+        nd:ClearAllPoints()
+        nd:SetPoint("TOPLEFT", f.content, "TOPLEFT", x0 + col * NODE_GAP, top - row * NODE_GAP)
+        nd:Show()
+      end
+    end
+    y = top - rows * NODE_GAP - 2
+    addCard("Green: done.  Gold: still to take.  Bright: your next point.  Red: not in this build.  "
+      .. "Numbers: your rank / the build's. Hover a talent for its text.")
+  end
+
+  addHeader("The plan")
+  for _, r in ipairs(tg.rows) do addCard(r.text, r.spell, r.id) end
+  return y
 end
 
 function Guide.Toggle()

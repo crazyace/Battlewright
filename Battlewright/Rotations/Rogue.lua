@@ -297,6 +297,72 @@ function Rogue.TalentPlan(s, build, level)
   return plan
 end
 
+-- The Talents page: the build to show (`chosen`, else the best fit for the
+-- mode and your weapons), why, and where you are on it. Returns
+-- { picks, key, build, plan, rows = { { spell, id, text } } }.
+function Rogue.TalentGuide(s, mode, level, chosen)
+  if chosen and not Rogue.BUILDS[chosen] then chosen = nil end
+  local picks = Rogue.PickBuilds(s, mode)
+  local key = chosen or picks[1][1]
+  local best = Rogue.BUILDS[key]
+  local reason
+  for _, p in ipairs(picks) do if p[1] == key then reason = p[2] end end
+  local tb = { rows = {} }
+  local function row(_, spell, text, id) tb.rows[#tb.rows + 1] = { spell = spell, id = id, text = text } end
+  local function talentIcon(name) return s.talentIDs and s.talentIDs[name] end
+  row(tb, nil, ("%s%s. %s"):format(best.name, reason and (": " .. reason) or "", best.why), best.icon)
+  if (level or 0) < 10 then
+    row(tb, nil, "Your first talent point comes at level 10.")
+  else
+    local plan = Rogue.TalentPlan(s, best, level)
+    local unspent = math.max(0, plan.points - plan.spent)
+    if not plan.next then
+      row(tb, nil, "You have the whole build.")
+    elseif unspent > 0 then
+      row(tb, nil, ("Spend your next point on %s (%d unspent)."):format(plan.next.name, unspent), talentIcon(plan.next.name))
+    elseif not plan.next.now and #plan.offPlan == 0 then
+      row(tb, nil, ("Your points match this build. Next: %s at level %d."):format(plan.next.name, plan.next.level),
+        talentIcon(plan.next.name))
+    elseif (level or 0) < 30 then
+      row(tb, nil, ("Your next point (level %d): %s."):format((level or 0) + 1, plan.next.name), talentIcon(plan.next.name))
+    end
+    local shown = 0
+    for _, u in ipairs(plan.upcoming) do
+      if shown < 8 then
+        local when = u.from == u.to and ("Level %d"):format(u.from) or ("Levels %d-%d"):format(u.from, u.to)
+        if u.from <= (level or 0) then -- the build has it by your level; you don't (yet)
+          when = u.to <= (level or 0) and "Due now" or ("Due now-%d"):format(u.to)
+        end
+        row(tb, nil, ("%s: %s %d"):format(when, u.name, u.rank), talentIcon(u.name))
+        shown = shown + 1
+      end
+    end
+    if #plan.offPlan > 0 then
+      row(tb, nil, ("Not in this build: %s. Fine to keep; to follow the build exactly, reset your talents at "
+        .. "your class trainer."):format(table.concat(plan.offPlan, ", ")))
+    end
+  end
+  for i, p in ipairs(picks) do
+    if p[1] ~= key then
+      local b = Rogue.BUILDS[p[1]]
+      row(tb, nil, ("%s: %s, %s."):format(i == 1 and "Best fit for you" or "Also good", b.name, p[2]), b.icon)
+    end
+  end
+  tb.picks, tb.key, tb.build = picks, key, best
+  tb.plan = (level or 0) >= 10 and Rogue.TalentPlan(s, best, level) or nil
+  return tb
+end
+
+-- Target ranks of `build` after `points` points ({ [name] = rank }).
+function Rogue.BuildRanks(build, points)
+  local out = {}
+  for i, name in ipairs(build.order) do
+    if i > points then break end
+    out[name] = (out[name] or 0) + 1
+  end
+  return out
+end
+
 -- The rotation guide (/bw guide) ---------------------------------------------------
 -- The same priorities as Next(), written out for what you have now: known
 -- spells, talents and weapons. Rows: { spell = icon name or nil, text }.
@@ -367,49 +433,6 @@ function Rogue.Guide(s, spec, level, mode)
     row(open, "Remorseless Attacks", ("Remorseless Attacks: a kill gives your next Sinister Strike, Backstab, "
       .. "Ambush or Mutilate +%d%% crit for 20 s. Pull the next mob inside those 20 s and open with %s; don't "
       .. "spend it on a stray Sinister Strike between pulls."):format(20 * remorse, hardest), remorseID)
-  end
-
-  -- Talent build: the best fit for the mode and your weapons, where you are on
-  -- it, and the alternatives.
-  local picks = Rogue.PickBuilds(s, mode)
-  local best = Rogue.BUILDS[picks[1][1]]
-  local tb = section(("Talent build (%s)"):format(group and "group" or "solo"))
-  local function talentIcon(name) return s.talentIDs and s.talentIDs[name] end
-  row(tb, nil, ("%s: %s. %s"):format(best.name, picks[1][2], best.why), best.icon)
-  if (level or 0) < 10 then
-    row(tb, nil, "Your first talent point comes at level 10.")
-  else
-    local plan = Rogue.TalentPlan(s, best, level)
-    local unspent = math.max(0, plan.points - plan.spent)
-    if not plan.next then
-      row(tb, nil, "You have the whole build.")
-    elseif unspent > 0 then
-      row(tb, nil, ("Spend your next point on %s (%d unspent)."):format(plan.next.name, unspent), talentIcon(plan.next.name))
-    elseif not plan.next.now and #plan.offPlan == 0 then
-      row(tb, nil, ("Your points match this build. Next: %s at level %d."):format(plan.next.name, plan.next.level),
-        talentIcon(plan.next.name))
-    elseif (level or 0) < 30 then
-      row(tb, nil, ("Your next point (level %d): %s."):format((level or 0) + 1, plan.next.name), talentIcon(plan.next.name))
-    end
-    local shown = 0
-    for _, u in ipairs(plan.upcoming) do
-      if shown < 8 then
-        local when = u.from == u.to and ("Level %d"):format(u.from) or ("Levels %d-%d"):format(u.from, u.to)
-        if u.from <= (level or 0) then -- the build has it by your level; you don't (yet)
-          when = u.to <= (level or 0) and "Due now" or ("Due now-%d"):format(u.to)
-        end
-        row(tb, nil, ("%s: %s %d"):format(when, u.name, u.rank), talentIcon(u.name))
-        shown = shown + 1
-      end
-    end
-    if #plan.offPlan > 0 then
-      row(tb, nil, ("Not in this build: %s. Fine to keep; to follow the build exactly, reset your talents at "
-        .. "your class trainer."):format(table.concat(plan.offPlan, ", ")))
-    end
-  end
-  for i = 2, #picks do
-    local b = Rogue.BUILDS[picks[i][1]]
-    row(tb, nil, ("Also good: %s, %s."):format(b.name, picks[i][2]), b.icon)
   end
 
   local prio = section("In combat, top to bottom")
