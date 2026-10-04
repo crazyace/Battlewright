@@ -21,7 +21,10 @@ local function stub() return setmetatable({}, { __index = function(t) return fun
 local frames = {}
 function CreateFrame()
   local f = stub()
-  f.RegisterEvent = function(self, e) frames[#frames + 1] = self; rawset(self, "events", rawget(self, "events") or {}); self.events[e] = true end
+  f.RegisterEvent = function(self, e)
+    if not rawget(self, "events") then rawset(self, "events", {}); frames[#frames + 1] = self end
+    self.events[e] = true
+  end
   f.SetScript = function(self, k, fn) self["_" .. k] = fn end
   f.CreateTexture = function() local t = stub(); t.SetTexture = function(s, x) s.tex = x end; t.SetDesaturated = function(s, d) s.gray = d end; return t end
   f.CreateFontString = function() local t = stub(); t.SetText = function(s, x) s.text = x end; return t end
