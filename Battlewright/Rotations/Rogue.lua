@@ -435,6 +435,38 @@ function Rogue.BuildRanks(build, points)
   return out
 end
 
+-- Spells only talents teach (the rest come from the trainer).
+local TAUGHT = { "Cold Blood", "Mutilate", "Riposte", "Blade Flurry", "Adrenaline Rush", "Ghostly Strike",
+  "Premeditation", "Preparation", "Hemorrhage" }
+
+-- `s` as if your `points` had gone into `build`: its ranks, the spells those
+-- teach (and not the ones only your own talents teach), and the spec of the
+-- tree it fills most. The guide's Rotation page uses it to preview a build
+-- picked on the Talents page; the in-combat icon never does.
+function Rogue.Preview(s, build, points)
+  local ranks = Rogue.BuildRanks(build, points)
+  local copy, spells = {}, {}
+  for k, v in pairs(s) do copy[k] = v end
+  for name, sp in pairs(s.spells) do spells[name] = sp end
+  copy.talents, copy.spells = ranks, spells
+  local ids, tabOf = {}, {}
+  for _, t in ipairs(Rogue.TALENTS) do ids[t.name], tabOf[t.name] = t.spell, t.tab end
+  for _, name in ipairs(TAUGHT) do
+    if (ranks[name] or 0) > 0 then
+      spells[name] = s.spells[name] or { id = ids[name], cost = 0, cooldown = 0, usable = true, noPower = false }
+    else
+      spells[name] = nil
+    end
+  end
+  local per, best = {}, 1
+  for name, rank in pairs(ranks) do
+    local tab = tabOf[name]
+    if tab then per[tab] = (per[tab] or 0) + rank end
+  end
+  for tab = 2, 3 do if (per[tab] or 0) > (per[best] or 0) then best = tab end end
+  return copy, Rogue.tabToSpec[best]
+end
+
 -- The rotation guide (/bw guide) ---------------------------------------------------
 -- The same priorities as Next(), written out for what you have now: known
 -- spells, talents and weapons. Rows: { spell = icon name or nil, text }.

@@ -110,6 +110,13 @@ function Guide.Mode()
   return (IsInGroup and IsInGroup()) and "group" or "solo"
 end
 
+local function sameRanks(a, b)
+  a, b = a or {}, b or {}
+  for name, rank in pairs(a) do if (b[name] or 0) ~= rank then return false end end
+  for name, rank in pairs(b) do if (a[name] or 0) ~= rank then return false end end
+  return true
+end
+
 -- Sections and the rotation path for the current character, or nil and why not.
 function Guide.Build()
   local _, class = UnitClass("player")
@@ -120,11 +127,27 @@ function Guide.Build()
   if not s then return nil, "open the guide out of combat" end
   local spec, how = ns.Spec.Detect(class, s.spells)
   local mode = Guide.Mode()
-  local sections = rotation.Guide(s, spec, UnitLevel and UnitLevel("player") or nil, mode)
-  local path = rotation.GuidePath and rotation.GuidePath(s, spec, mode) or nil
-  local talents = rotation.TalentGuide
-    and rotation.TalentGuide(s, mode, UnitLevel and UnitLevel("player") or nil, ns.db and ns.db.guideBuild or nil) or nil
+  local level = UnitLevel and UnitLevel("player") or nil
+  local chosen = ns.db and ns.db.guideBuild or nil
+  local talents = rotation.TalentGuide and rotation.TalentGuide(s, mode, level, chosen) or nil
   if talents then talents.ranks, talents.list = s.talents or {}, ns.Talents.Get().list end
+  -- A build you picked on the Talents page: the Rotation page plays it with
+  -- your points, unless your talents already are that build.
+  local preview
+  if talents and chosen and talents.key == chosen and talents.plan and rotation.Preview then
+    local points = talents.plan.points
+    if not sameRanks(rotation.BuildRanks(talents.build, points), s.talents) then
+      local own = spec
+      s, spec = rotation.Preview(s, talents.build, points)
+      how = "preview"
+      preview = ("Previewing %s with your %d talent points (picked on the Talents page). Your own talents play "
+        .. "as %s: pick the build you follow there to see them."):format(talents.build.name, points,
+        own:gsub("^%l", string.upper))
+    end
+  end
+  local sections = rotation.Guide(s, spec, level, mode)
+  local path = rotation.GuidePath and rotation.GuidePath(s, spec, mode) or nil
+  if preview and sections[1] then table.insert(sections[1].rows, 1, { text = preview, id = talents.build.icon }) end
   return sections, spec, how, path, talents
 end
 
