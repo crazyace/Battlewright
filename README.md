@@ -73,6 +73,7 @@ Out of melee range, the icon turns red and says so. Rupture's timer is kept per 
 | `/bw spec combat` | Play a spec regardless of talents (`auto` to go back) |
 | `/bw target` | Also show out of combat with an enemy targeted |
 | `/bw behind` | Assume you're behind the target: suggest Backstab with a dagger |
+| `/bw guide` | A window with your rotation written out: setup (weapons), opener, priority, cooldowns, the talents that shape it, and what's coming up. Built from your spells, talents and weapons; same rules as the icon |
 | `/bw talents` | Your spec and talents, and how the rotation uses them |
 | `/bw on`, `/bw off` | Turn it on or off |
 | `/bw reset` | Put the icon back in the middle |

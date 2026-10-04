@@ -13,4 +13,5 @@ Core\State.lua
 Core\Spec.lua
 Rotations\Rogue.lua
 UI\Display.lua
+UI\Guide.lua
 Core\Commands.lua

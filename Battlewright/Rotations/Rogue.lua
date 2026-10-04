@@ -60,6 +60,10 @@ end
 local function known(s, name) return s.spells[name] ~= nil end
 local function talent(s, name) return (s.talents and s.talents[name] or 0) > 0 end
 local function dagger(s) return s.mainHand == DAGGER end
+-- Full combo points: 4 with Mutilate (it adds 2 at a time, 6 would waste one), else 5.
+local function fullCP(s) return known(s, "Mutilate") and 4 or 5 end
+-- Eureka! waits until its 3 charges reach the finisher: two builders before it.
+local function eurekaCP(s) return fullCP(s) - 2 * (known(s, "Mutilate") and 2 or 1) end
 
 -- Usable soon: known, off cooldown, and the game doesn't say it's unusable
 -- (wrong weapon, not behind...). Energy is handled by `wait`.
@@ -103,7 +107,7 @@ local function finisher(s, spec)
   if cp >= 1 and not dying and ready(s, "Slice and Dice") and (not snd or snd < SND_REFRESH) and (cp >= 2 or not snd) then
     return act(s, "Slice and Dice", snd and "Slice and Dice is about to fall off" or "Slice and Dice is down")
   end
-  local full = (spec == "assassination" and known(s, "Mutilate")) and 4 or 5 -- Mutilate adds 2 at a time
+  local full = fullCP(s)
   -- Venom (Assassination capstone): poisons +30% damage while it lasts.
   if cp >= full and not dying and not s.buffs["Venom"] and ready(s, "Venom") then
     return act(s, "Venom", "Venom is down: poisons hit 30% harder")
@@ -177,9 +181,8 @@ local function cooldown(s, spec)
   -- the next three are your strongest: two builders and the full-combo-point
   -- finisher (with Mutilate, one Mutilate gets you there), not while the
   -- target casts (Kick would spend one).
-  local full = known(s, "Mutilate") and 4 or 5
-  local step = known(s, "Mutilate") and 2 or 1
-  if not s.target.casting and s.cp >= full - 2 * step and ready(s, "Eureka!") then
+  local full = fullCP(s)
+  if not s.target.casting and s.cp >= eurekaCP(s) and ready(s, "Eureka!") then
     return { spell = "Eureka!", why = "racial: your next 3 attacks, finisher included, cost less and hit harder" }
   end
   if spec == "combat" then
@@ -199,10 +202,128 @@ end
 -- seconds; the Gouge can't. A full-combo-point finisher still comes first.
 local function gougeWindow(s, spec)
   if not s.debuffs["Gouge"] then return nil end
-  local full = (spec == "assassination" and known(s, "Mutilate")) and 4 or 5
-  if s.cp >= full then return nil end
+  if s.cp >= fullCP(s) then return nil end
   if not ((dagger(s) and ready(s, "Backstab")) or ready(s, "Mutilate")) then return nil end
   return builder(s, spec)
+end
+
+-- The rotation guide (/bw guide) ---------------------------------------------------
+-- The same priorities as Next(), written out for what you have now: known
+-- spells, talents and weapons. Rows: { spell = icon name or nil, text }.
+local WEAPON_NAMES = { [0] = "an axe", [4] = "a mace", [7] = "a sword", [13] = "a fist weapon", [15] = "a dagger" }
+-- Rotation spells still to come, by trainer level (Forever trainer, verified).
+-- (Spell IDs for the icons: a spell you don't know yet has no icon by name.)
+local COMING = {
+  { 20, "Rupture", "a bleed finisher for elites and bosses", 1943 },
+  { 22, "Vanish", "back into stealth: escape, or a second opener", 1856 },
+  { 26, "Cheap Shot", "a stun opener that works from the front", 1833 },
+  { 28, "Instant Poison II", "your first damaging poison: put it on both weapons", 8687 },
+  { 30, "Kidney Shot", "a finisher stun", 408 },
+  { 30, "Deadly Poison", "poison damage over time", 2835 },
+}
+
+function Rogue.Guide(s, spec, level)
+  local sections = {}
+  local function section(title) local sec = { title = title, rows = {} }; sections[#sections + 1] = sec; return sec end
+  local function row(sec, spell, text, id)
+    sec.rows[#sec.rows + 1] = { spell = spell, id = id or (spell and s.spells[spell] and s.spells[spell].id), text = text }
+  end
+  local full = fullCP(s)
+
+  local setup = section("Your setup")
+  row(setup, nil, ("Spec: %s"):format(spec:gsub("^%l", string.upper)))
+  if dagger(s) then
+    row(setup, "Backstab", "Main hand: a dagger. Ambush, Backstab and Gouge -> Backstab all work.")
+  elseif s.mainHand then
+    row(setup, "Sinister Strike", ("Main hand: %s. Sinister Strike builds; Ambush and Backstab need a dagger in "
+      .. "your main hand."):format(WEAPON_NAMES[s.mainHand] or "a weapon"))
+  else
+    row(setup, nil, "Main hand: empty. Equip a weapon.")
+  end
+  if s.offHand then
+    row(setup, nil, ("Off hand: %s.%s"):format(WEAPON_NAMES[s.offHand] or "a weapon",
+      known(s, "Mutilate") and " Mutilate hits with both weapons." or ""))
+  elseif (level or 0) >= 10 then
+    row(setup, nil, "Off hand: empty. You can Dual Wield: a second weapon is free damage.")
+  end
+
+  local open = section("From stealth")
+  if known(s, "Premeditation") then row(open, "Premeditation", "Premeditation first: 2 combo points.") end
+  if dagger(s) and known(s, "Ambush") then
+    row(open, "Ambush", "Ambush, from behind: your hardest hit.")
+  end
+  if known(s, "Garrote") then
+    row(open, "Garrote", talent(s, "Dirty Deeds") and "Garrote: a bleed (works from the front with Dirty Deeds)."
+      or "Garrote, from behind: a bleed" .. (dagger(s) and " (when you can't Ambush)." or "."))
+  end
+  if known(s, "Cheap Shot") then row(open, "Cheap Shot", "Cheap Shot: a stun, from any side.") end
+  if #open.rows == 0 then row(open, "Sinister Strike", "No opener yet: walk up and Sinister Strike.") end
+
+  local prio = section("In combat, top to bottom")
+  if known(s, "Kick") then row(prio, "Kick", "Kick the moment the target casts (big icon).") end
+  if known(s, "Gouge") and (known(s, "Mutilate") or (dagger(s) and known(s, "Backstab"))) then
+    row(prio, "Gouge", ("Gouge, step behind, %s while it holds."):format(known(s, "Mutilate") and "Mutilate" or "Backstab"))
+  end
+  if known(s, "Slice and Dice") then
+    row(prio, "Slice and Dice", "Slice and Dice when it's down (1-2 combo points), or with 2 s left.")
+  end
+  if known(s, "Venom") then row(prio, "Venom", ("Venom at %d combo points when it's down."):format(full)) end
+  if known(s, "Rupture") then
+    row(prio, "Rupture", talent(s, "Serrated Blades") and ("Rupture at %d, kept up (Serrated Blades)."):format(full)
+      or (spec == "combat" and "Rupture: skipped (Eviscerate is better for Combat)."
+      or ("Rupture at %d on elites and bosses; normal mobs die first."):format(full)))
+  end
+  if known(s, "Eviscerate") then
+    row(prio, "Eviscerate", ("Eviscerate at %d combo points; earlier if the mob is nearly dead "
+      .. "(combo points are lost when it dies)."):format(full))
+  end
+  if known(s, "Riposte") then row(prio, "Riposte", "Riposte after you parry.") end
+  if known(s, "Mutilate") then row(prio, "Mutilate", "Mutilate to build: 2 combo points, from any side.") end
+  if spec == "subtlety" then
+    if known(s, "Ghostly Strike") then row(prio, "Ghostly Strike", "Ghostly Strike when it's ready.") end
+    if known(s, "Hemorrhage") then row(prio, "Hemorrhage", "Hemorrhage to build.") end
+  end
+  if dagger(s) and known(s, "Backstab") then
+    row(prio, "Backstab", "Backstab when you're behind (groups: /bw behind).")
+  end
+  if known(s, "Sinister Strike") then
+    row(prio, "Sinister Strike", (known(s, "Mutilate") and "Sinister Strike if Mutilate isn't usable."
+      or "Sinister Strike to build otherwise."))
+  end
+
+  local cds = section("Cooldowns (small icon)")
+  if known(s, "Eureka!") then
+    row(cds, "Eureka!", ("Eureka! at %d combo points: its 3 charges reach your finisher. Not while the "
+      .. "mob casts (Kick uses a charge)."):format(eurekaCP(s)))
+  end
+  if known(s, "Cold Blood") then row(cds, "Cold Blood", ("Cold Blood right before a %d-point Eviscerate."):format(full)) end
+  if known(s, "Adrenaline Rush") then row(cds, "Adrenaline Rush", "Adrenaline Rush when it's ready.") end
+  if known(s, "Blade Flurry") then row(cds, "Blade Flurry", "Blade Flurry, best with two mobs.") end
+  if known(s, "Preparation") then row(cds, "Preparation", "Preparation once Vanish and Evasion are used.") end
+  if known(s, "Evasion") then row(cds, "Evasion", "Evasion when a fight goes wrong (your call).") end
+  if #cds.rows == 0 then row(cds, nil, "None yet.") end
+
+  local tal = section("Talents that shape this")
+  local names = {}
+  for name in pairs(Rogue.USED) do if talent(s, name) then names[#names + 1] = name end end
+  table.sort(names)
+  for _, name in ipairs(names) do row(tal, nil, ("%s %d: %s"):format(name, s.talents[name], Rogue.USED[name])) end
+  if talent(s, "Relentless Strikes") then row(tal, nil, "Relentless Strikes: 5-point finishers refund 25 energy.") end
+  if talent(s, "Ruthlessness") then row(tal, nil, "Ruthlessness: finishers often leave 1 combo point.") end
+  if talent(s, "Remorseless Attacks") then
+    row(tal, nil, "Remorseless Attacks: after a kill your next builder or Ambush likely crits (20 s): chain pulls.")
+  end
+  if #tal.rows == 0 then row(tal, nil, "None that change what you press (/bw talents lists them all).") end
+
+  local soon = section("Coming up")
+  for _, c in ipairs(COMING) do
+    if not known(s, c[2]) and c[1] >= (level or 0) then row(soon, c[2], ("Level %d: %s, %s."):format(c[1], c[2], c[3]), c[4]) end
+  end
+  if spec == "assassination" and not known(s, "Mutilate") then
+    row(soon, "Mutilate", "20 points in Assassination: Mutilate, 2 combo points a press (the level 30 goal).", 1310707)
+  end
+  if #soon.rows == 0 then sections[#sections] = nil end
+  return sections
 end
 
 -- The next ability for `spec`, or nil when there's nothing to attack.

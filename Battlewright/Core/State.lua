@@ -7,7 +7,7 @@
 --   target.casting = { interruptible = bool } while the target casts or channels,
 --   inRange = false when out of melee range (nil = unknown),
 --   talents = { [name] = rank } (read out of combat), mainHand = weapon subclass
---   (15 = dagger) or nil, behind = true when you've told Battlewright to assume
+--   (15 = dagger) or nil, offHand likewise, behind = true when you've told Battlewright to assume
 --   you're behind the target (/bw behind; the game doesn't say).
 --
 -- What Forever lets addons read in combat (BattlewrightProbe, 2026-10-03,
@@ -60,21 +60,23 @@ end
 
 local spellIDs = {}
 
--- Main-hand weapon subclass (Enum.ItemWeaponSubclass; 15 = dagger), cached.
-local mainHand, mainHandRead
-local function weapon()
-  if mainHandRead then return mainHand end
-  mainHandRead = true
-  local id = GetInventoryItemID and GetInventoryItemID("player", 16)
-  if id and C_Item and C_Item.GetItemInfoInstant then
-    local ok, _, _, _, _, _, classID, subclassID = pcall(C_Item.GetItemInfoInstant, id)
-    mainHand = ok and classID == 2 and subclassID or nil
-  else
-    mainHand = nil
+-- A weapon slot's item: subclass (15 = dagger, 0 axe, 4 mace, 7 sword, 13
+-- fist...), or nil when empty or not a weapon. Read once per equipment change.
+local weapons = {} -- [slot] = subclass or false
+local function weaponIn(slot)
+  if weapons[slot] == nil then
+    weapons[slot] = false
+    local id = GetInventoryItemID and GetInventoryItemID("player", slot)
+    if id and C_Item and C_Item.GetItemInfoInstant then
+      local ok, _, _, _, _, _, classID, subclassID = pcall(C_Item.GetItemInfoInstant, id)
+      if ok and classID == 2 then weapons[slot] = subclassID end
+    end
   end
-  return mainHand
+  return weapons[slot] or nil
 end
-ns:On("PLAYER_EQUIPMENT_CHANGED", function() mainHandRead = false end)
+local function weapon() return weaponIn(16) end
+State.Weapon = weaponIn
+ns:On("PLAYER_EQUIPMENT_CHANGED", function() weapons = {} end)
 
 local function spell(name, now)
   local id = spellIDs[name]
@@ -175,6 +177,7 @@ function State.Read()
     spells = {},
     talents = ns.Talents.Get().ranks,
     mainHand = weapon(),
+    offHand = weaponIn(17),
     behind = ns.db and ns.db.assumeBehind or false,
   }
   if GetPowerRegen then

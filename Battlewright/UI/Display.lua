@@ -34,6 +34,8 @@ local function texture(name, id)
   return icons[name] or QUESTION
 end
 
+Display.Texture = texture
+
 function Display.Create()
   if Display.frame then return Display.frame end
   local f = CreateFrame("Frame", "BattlewrightFrame", UIParent)

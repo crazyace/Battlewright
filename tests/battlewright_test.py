@@ -36,6 +36,7 @@ function CreateFrame()
   f.SetAlphaFromBoolean = function(self, v, a, b) self.fromBoolean = { v, a, b } end
   f.SetValue = function(self, v) self.value = v end
   f.SetShown = function(self, v) self.shown = v end
+  f.IsShown = function(self) return self.shown == true end
   return f
 end
 function fire(event, ...)
@@ -49,6 +50,7 @@ function geterrorhandler() return function(e) error(e) end end
 SlashCmdList = {}
 Enum = { PowerType = { Energy = 3, ComboPoints = 4 } }
 function UnitClass() return "Rogue", "ROGUE" end
+function UnitLevel() return GAME.level or 19 end
 -- The mocked game: edit GAME between checks.
 GAME = { energy = 100, cp = 0, stealthed = false, combat = true, target = true, hp = 0.8,
   buffs = {}, debuffs = {}, known = { ["Sinister Strike"] = 45, ["Eviscerate"] = 35, ["Slice and Dice"] = 25 }, now = 100 }
@@ -208,6 +210,45 @@ L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("C_ClassTalents, C_Traits = nil, nil; GAME.mainHand = nil")
 L.eval("function(ns) ns.Talents.Clear() end")(ns)
 L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
+
+# /bw guide: the rotation written out for what you have. A dagger Assassination
+# Rogue at 19 with Eureka! and Gouge, no Mutilate yet.
+L.globals().SlashCmdList.BATTLEWRIGHT("spec assassination")
+show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Backstab": 60, "Ambush": 60,
+            "Garrote": 50, "Gouge": 45, "Kick": 25, "Eureka!": 0, "Evasion": 0}, cp=0, combat=False)
+L.execute("GAME.mainHand = 15"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
+L.globals().SlashCmdList.BATTLEWRIGHT("guide")
+guide = L.eval("""function(ns) local out = {}
+  for _, sec in ipairs(ns.Guide.sections) do
+    out[#out + 1] = "# " .. sec.title
+    for _, r in ipairs(sec.rows) do out[#out + 1] = r.text end
+  end
+  return table.concat(out, "\\n") end""")(ns)
+print(guide)
+for want in ["# From stealth", "Ambush, from behind", "Kick the moment the target casts",
+             "Gouge, step behind, Backstab while it holds", "Eviscerate at 5 combo points",
+             "Eureka! at 3 combo points", "Main hand: a dagger", "Off hand: empty",
+             "Level 20: Rupture", "Level 22: Vanish", "20 points in Assassination: Mutilate"]:
+    assert want in guide, want
+# Priority order matches the rotation: Kick, Gouge, Slice and Dice, Eviscerate, builders.
+order = [guide.index(x) for x in ["Kick the moment", "Gouge, step behind", "Slice and Dice when", "Eviscerate at", "Backstab when", "Sinister Strike to build"]]
+assert order == sorted(order), order
+# The window drew a line per row, with the spell's icon.
+lines = L.eval("function(ns) local n = 0 for _, l in ipairs(ns.Guide.frame.lines) do if l.text.text then n = n + 1 end end return n end")(ns)
+assert lines >= 15, lines
+# With a sword and Mutilate: no Ambush/Backstab, finish at 4, Eureka! at 0+... (4 - 2x2 = 0).
+L.execute("GAME.mainHand = 7"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
+show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Mutilate": 60, "Gouge": 45, "Cold Blood": 0})
+L.eval("function(ns) ns.Guide.Refresh() end")(ns)
+guide2 = L.eval("""function(ns) local out = {} for _, sec in ipairs(ns.Guide.sections) do
+  for _, r in ipairs(sec.rows) do out[#out + 1] = r.text end end return table.concat(out, "\\n") end""")(ns)
+assert "Main hand: a sword" in guide2 and "Ambush, from behind" not in guide2, guide2
+assert "Eviscerate at 4 combo points" in guide2 and "Gouge, step behind, Mutilate" in guide2, guide2
+assert "Cold Blood right before a 4-point Eviscerate" in guide2, guide2
+L.globals().SlashCmdList.BATTLEWRIGHT("guide")  # closes it
+assert L.eval("function(ns) return ns.Guide.frame.shown end")(ns) is False
+L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
+L.execute("GAME.mainHand = nil; GAME.combat = true"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
 
 # The display: shown in combat with the spell's icon and why; hidden (alpha 0)
 # out of combat while locked.
