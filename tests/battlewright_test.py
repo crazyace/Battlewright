@@ -263,6 +263,50 @@ assert cells == 13, cells  # Ambush; Remorseless, Ambush; SnD, SS, Eureka!, SS, 
 # The window drew a line per row, with the spell's icon.
 lines = L.eval("function(ns) local n = 0 for _, l in ipairs(ns.Guide.frame.lines) do if l.text.text then n = n + 1 end end return n end")(ns)
 assert lines >= 15, lines
+# Talent builds: every order is legal on Forever's tree (rows need 5 points per
+# row in that tree; prerequisites need the full source talent; max ranks; 21
+# points at 30). Tree from /bwp book, 2026-10-03.
+TREE = {  # name: (tree, row, max ranks, prerequisite)
+  "Improved Gouge": ("A", 1, 3, None), "Remorseless Attacks": ("A", 1, 2, None), "Malice": ("A", 1, 5, None),
+  "Ruthlessness": ("A", 2, 3, None), "Murder": ("A", 2, 2, None), "Improved Slice and Dice": ("A", 2, 3, None),
+  "Relentless Strikes": ("A", 3, 1, None), "Improved Expose Armor": ("A", 3, 2, None), "Lethality": ("A", 3, 5, "Malice"),
+  "Vile Poisons": ("A", 4, 5, None), "Cold Blood": ("A", 4, 1, None), "Improved Poisons": ("A", 4, 5, None),
+  "Vigor": ("A", 5, 2, None), "Mutilate": ("A", 5, 1, None), "Improved Kidney Shot": ("A", 5, 2, None),
+  "Improved Eviscerate": ("C", 1, 3, None), "Improved Sinister Strike": ("C", 1, 2, None), "Lightning Reflexes": ("C", 1, 5, None),
+  "Puncturing Wounds": ("C", 2, 3, None), "Deflection": ("C", 2, 3, None), "Precision": ("C", 2, 3, None),
+  "Endurance": ("C", 3, 2, None), "Riposte": ("C", 3, 1, "Deflection"), "Improved Sprint": ("C", 3, 2, None),
+  "Improved Kick": ("C", 4, 2, None), "Flawless Execution": ("C", 4, 1, None), "Dual Wield Specialization": ("C", 4, 5, "Precision"),
+  "Blade Flurry": ("C", 5, 1, None), "Hack and Slash": ("C", 5, 5, None),
+}
+builds = L.eval("function(ns) return ns.Rotations.ROGUE.BUILDS end")(ns)
+for key in ["mutilate", "backstab", "combat"]:
+    order = list(builds[key].order.values())
+    assert len(order) == 21, (key, len(order))
+    ranks, spent = {}, {"A": 0, "C": 0, "S": 0}
+    for i, name in enumerate(order):
+        tree, row, mx, pre = TREE[name]
+        assert spent[tree] >= 5 * (row - 1), (key, i, name, "row gate")
+        assert pre is None or ranks.get(pre, 0) == TREE[pre][2], (key, name, "needs", pre)
+        ranks[name] = ranks.get(name, 0) + 1
+        assert ranks[name] <= mx, (key, name, "max rank")
+        spent[tree] += 1
+
+# A plan with points off the build and some unspent: Improved Gouge 2 and
+# Malice 3 at level 19 (10 points, 5 spent).
+plan = L.eval("""function(ns) local R = ns.Rotations.ROGUE
+  local p = R.TalentPlan({ talents = { ["Improved Gouge"] = 2, ["Malice"] = 3 } }, R.BUILDS.mutilate, 19)
+  return p.next.name, p.next.now, p.points, p.spent, p.offPlan[1] end""")(ns)
+assert tuple(plan) == ("Malice", True, 10, 5, "Improved Gouge 2"), tuple(plan)
+
+# The guide's talent build for Sassy: level 19, Malice 5, Remorseless Attacks 2,
+# Ruthlessness 3, a dagger, solo: Mutilate build, on track, Lethality next.
+for want in ["Assassination: Mutilate: Ambush openers, Lethality crits and Mutilate at 30.",
+             "Your points match this build. Next: Lethality at level 20.", "Levels 20-24: Lethality 5",
+             "Level 25: Relentless Strikes 1", "Level 26: Cold Blood 1", "Levels 27-29: Improved Slice and Dice 3",
+             "Level 30: Mutilate 1", "Also good: Combat: sturdy, if you'd rather not die (equip an off-hand weapon"]:
+    assert want in guide, want
+assert "Not in this build" not in guide
+
 # Group mode (/bw guide group): Backstab is the builder, Rupture on bosses,
 # Feint for threat, the tank pulls first; no Gouge trick or chain pulling.
 assert L.eval("function(ns) return ns.Guide.mode end")(ns) == "solo"
@@ -286,6 +330,13 @@ for want in ["Let the tank pull and hold the mob first", "Backstab is your build
              "Evasion if the mob turns on you", "Vanish to drop all threat", "it matters less in groups"]:
     assert want in gtext, want
 assert "Gouge, step behind" not in gtext and "Pull the next mob inside" not in gtext, gtext
+# Group with a dagger: the Backstab build. Sassy's points are all in it (a different
+# order), so nothing is off-plan; its early Combat points are due now.
+for want in ["Backstab (dagger, groups): you have a dagger in your main hand", "Due now: Improved Eviscerate 3",
+             "Due now: Puncturing Wounds 3", "Your next point (level 20): Improved Eviscerate.",
+             "Also good: Assassination: Mutilate, if you also play solo"]:
+    assert want in gtext, want
+assert "Not in this build" not in gtext
 # Back to Solo with the tab.
 L.eval("function(ns) ns.Guide.SetMode('solo') end")(ns)
 assert L.eval("function(ns) return ns.Guide.mode end")(ns) == "solo"

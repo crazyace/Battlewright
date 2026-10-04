@@ -175,10 +175,27 @@ first 17 points, then **Improved Eviscerate 3 + Improved Sinister Strike 1** (Co
 row 1). You'd have Eviscerate +20% and cheaper Sinister Strikes for the level 30
 Sinister Strike/Eviscerate grind.
 
-**Puncturing Wounds** (Backstab +30% crit, extra combo points) needs 5 points in Combat
-before it, so 8 points in total. Taking it means giving up Relentless Strikes and Cold Blood, or
-Mutilate. It isn't worth it at 30 unless you mostly play
-in groups from behind.
+## The three builds in the guide
+
+`/bw guide` picks one of these for its Solo or Group tab and your weapons. It shows the
+next point to spend, what's still to come by level, any points you've spent that the
+build doesn't use, and the other builds as alternatives. Every order follows the tree's
+rules; the tests check that.
+
+| Build | Levels 10-30 (in order) | Picked for |
+|---|---|---|
+| **Assassination: Mutilate** | Malice 5, Ruthlessness 3, Remorseless Attacks 2, Lethality 5, Relentless Strikes, Cold Blood, Improved Slice and Dice 3, Mutilate | Solo with any weapon; groups without a main-hand dagger |
+| **Backstab (dagger, groups)** | Improved Eviscerate 3, Improved Sinister Strike 2, **Puncturing Wounds 3**, Malice 5, Ruthlessness 3, Remorseless Attacks 2, Relentless Strikes, Lethality 2 | Groups with a main-hand dagger |
+| **Combat: sturdy** | Improved Sinister Strike 2, Improved Eviscerate 3, Precision 3, Deflection 3, Riposte, Lightning Reflexes 3, Flawless Execution, Dual Wield Specialization 4, Blade Flurry | The alternative for anyone who'd rather not die; best with an off-hand weapon |
+
+**Backstab build:** Puncturing Wounds needs 5 points in Combat before it. So the build
+opens with Combat's cheap row 1 (Improved Eviscerate, Improved Sinister Strike), and
+Backstab is critting 30% more by level 17. It gives up Cold Blood and Mutilate, so it's
+weaker solo: you rarely get behind a mob that's facing you.
+
+**Combat build:** it trades burst for staying alive (+6% parry, Riposte, +3% dodge), keeps
+Sinister Strike cheap and Eviscerate strong, and takes Blade Flurry at 30. It doesn't
+depend on your weapon type.
 
 ## How to play it (Battlewright follows this)
 

@@ -207,6 +207,96 @@ local function gougeWindow(s, spec)
   return builder(s, spec)
 end
 
+-- Talent builds --------------------------------------------------------------------
+-- Each build is the order to spend points in, one entry per rank, level 10
+-- (the first point) to 30 (the 21st). Every order keeps Forever's tree rules:
+-- 5 points in a tree per row, Lethality after Malice 5, Riposte after
+-- Deflection 3, Dual Wield Specialization after Precision 3 (checked by the
+-- tests). Values are Forever's own talent texts (/bwp book, docs/ROGUE.md).
+local function order(list)
+  local out = {}
+  for _, e in ipairs(list) do for _ = 1, e[2] do out[#out + 1] = e[1] end end
+  return out
+end
+
+Rogue.BUILDS = {
+  mutilate = {
+    name = "Assassination: Mutilate",
+    icon = 1310707,
+    why = "Crit and finishers: Lethality (+20% crit damage on your builders), Relentless Strikes (energy back on "
+      .. "5-point finishers), Cold Blood, and Mutilate at 30 (2 combo points a press, from any side). The "
+      .. "strongest all-round build: solo with any weapon, and in groups.",
+    order = order({ { "Malice", 5 }, { "Ruthlessness", 3 }, { "Remorseless Attacks", 2 }, { "Lethality", 5 },
+      { "Relentless Strikes", 1 }, { "Cold Blood", 1 }, { "Improved Slice and Dice", 3 }, { "Mutilate", 1 } }),
+  },
+  backstab = {
+    name = "Backstab (dagger, groups)",
+    icon = 2589,
+    why = "Puncturing Wounds (Backstab +30% crit, 45% chance of an extra combo point) early, then Assassination "
+      .. "for crit and Relentless Strikes. Best when you're behind the mob all fight, which is groups. Gives up "
+      .. "Cold Blood and Mutilate, so it's weaker solo.",
+    order = order({ { "Improved Eviscerate", 3 }, { "Improved Sinister Strike", 2 }, { "Puncturing Wounds", 3 },
+      { "Malice", 5 }, { "Ruthlessness", 3 }, { "Remorseless Attacks", 2 }, { "Relentless Strikes", 1 },
+      { "Lethality", 2 } }),
+  },
+  combat = {
+    name = "Combat: sturdy",
+    icon = 13877,
+    why = "Cheaper Sinister Strikes, +20% Eviscerate, hit, parry, Riposte and dodge, then Flawless Execution, "
+      .. "Dual Wield Specialization (+25% off-hand damage) and Blade Flurry at 30. Less burst than Mutilate but "
+      .. "much harder to kill: good if you pull a lot or hate dying.",
+    order = order({ { "Improved Sinister Strike", 2 }, { "Improved Eviscerate", 3 }, { "Precision", 3 },
+      { "Deflection", 3 }, { "Riposte", 1 }, { "Lightning Reflexes", 3 }, { "Flawless Execution", 1 },
+      { "Dual Wield Specialization", 4 }, { "Blade Flurry", 1 } }),
+  },
+}
+
+-- Which builds fit, best first, with the reason for the pick.
+function Rogue.PickBuilds(s, mode)
+  local hasDagger, hasOff = dagger(s), s.offHand ~= nil
+  local list
+  if mode == "group" and hasDagger then
+    list = { { "backstab", "you have a dagger in your main hand and you'll be behind the mob" },
+      { "mutilate", "if you also play solo: Mutilate works from any side" } }
+  elseif mode == "group" then
+    list = { { "mutilate", "without a main-hand dagger there's no Backstab; with one, the Backstab build is stronger in groups" } }
+  else
+    list = { { "mutilate", hasDagger and "Ambush openers, Lethality crits and Mutilate at 30"
+      or "Sinister Strike with Lethality crits, Cold Blood Eviscerates and Mutilate at 30" } }
+  end
+  list[#list + 1] = { "combat", hasOff and "if you'd rather not die: parry, dodge and off-hand damage"
+    or "if you'd rather not die (equip an off-hand weapon: it adds Dual Wield Specialization damage)" }
+  return list
+end
+
+-- The plan for `build` at `level`: the next point, what's still to come
+-- (grouped by talent), and the points you've spent that it doesn't use.
+function Rogue.TalentPlan(s, build, level)
+  local have = s.talents or {}
+  local points = math.max(0, math.min(21, (level or 0) - 9))
+  local plan = { upcoming = {}, offPlan = {}, points = points, spent = 0 }
+  for _, rank in pairs(have) do plan.spent = plan.spent + rank end
+  local seen, inBuild = {}, {}
+  for i, name in ipairs(build.order) do
+    seen[name] = (seen[name] or 0) + 1
+    inBuild[name] = seen[name]
+    if (have[name] or 0) < seen[name] then -- not taken yet
+      plan.next = plan.next or { name = name, level = i + 9, now = i <= points }
+      local last = plan.upcoming[#plan.upcoming]
+      if last and last.name == name then
+        last.to, last.rank = i + 9, seen[name]
+      else
+        plan.upcoming[#plan.upcoming + 1] = { name = name, from = i + 9, to = i + 9, rank = seen[name] }
+      end
+    end
+  end
+  for name, rank in pairs(have) do
+    if rank > (inBuild[name] or 0) then plan.offPlan[#plan.offPlan + 1] = ("%s %d"):format(name, rank) end
+  end
+  table.sort(plan.offPlan)
+  return plan
+end
+
 -- The rotation guide (/bw guide) ---------------------------------------------------
 -- The same priorities as Next(), written out for what you have now: known
 -- spells, talents and weapons. Rows: { spell = icon name or nil, text }.
@@ -277,6 +367,49 @@ function Rogue.Guide(s, spec, level, mode)
     row(open, "Remorseless Attacks", ("Remorseless Attacks: a kill gives your next Sinister Strike, Backstab, "
       .. "Ambush or Mutilate +%d%% crit for 20 s. Pull the next mob inside those 20 s and open with %s; don't "
       .. "spend it on a stray Sinister Strike between pulls."):format(20 * remorse, hardest), remorseID)
+  end
+
+  -- Talent build: the best fit for the mode and your weapons, where you are on
+  -- it, and the alternatives.
+  local picks = Rogue.PickBuilds(s, mode)
+  local best = Rogue.BUILDS[picks[1][1]]
+  local tb = section(("Talent build (%s)"):format(group and "group" or "solo"))
+  local function talentIcon(name) return s.talentIDs and s.talentIDs[name] end
+  row(tb, nil, ("%s: %s. %s"):format(best.name, picks[1][2], best.why), best.icon)
+  if (level or 0) < 10 then
+    row(tb, nil, "Your first talent point comes at level 10.")
+  else
+    local plan = Rogue.TalentPlan(s, best, level)
+    local unspent = math.max(0, plan.points - plan.spent)
+    if not plan.next then
+      row(tb, nil, "You have the whole build.")
+    elseif unspent > 0 then
+      row(tb, nil, ("Spend your next point on %s (%d unspent)."):format(plan.next.name, unspent), talentIcon(plan.next.name))
+    elseif not plan.next.now and #plan.offPlan == 0 then
+      row(tb, nil, ("Your points match this build. Next: %s at level %d."):format(plan.next.name, plan.next.level),
+        talentIcon(plan.next.name))
+    elseif (level or 0) < 30 then
+      row(tb, nil, ("Your next point (level %d): %s."):format((level or 0) + 1, plan.next.name), talentIcon(plan.next.name))
+    end
+    local shown = 0
+    for _, u in ipairs(plan.upcoming) do
+      if shown < 8 then
+        local when = u.from == u.to and ("Level %d"):format(u.from) or ("Levels %d-%d"):format(u.from, u.to)
+        if u.from <= (level or 0) then -- the build has it by your level; you don't (yet)
+          when = u.to <= (level or 0) and "Due now" or ("Due now-%d"):format(u.to)
+        end
+        row(tb, nil, ("%s: %s %d"):format(when, u.name, u.rank), talentIcon(u.name))
+        shown = shown + 1
+      end
+    end
+    if #plan.offPlan > 0 then
+      row(tb, nil, ("Not in this build: %s. Fine to keep; to follow the build exactly, reset your talents at "
+        .. "your class trainer."):format(table.concat(plan.offPlan, ", ")))
+    end
+  end
+  for i = 2, #picks do
+    local b = Rogue.BUILDS[picks[i][1]]
+    row(tb, nil, ("Also good: %s, %s."):format(b.name, picks[i][2]), b.icon)
   end
 
   local prio = section("In combat, top to bottom")
