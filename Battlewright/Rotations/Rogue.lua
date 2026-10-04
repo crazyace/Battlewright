@@ -35,6 +35,8 @@ Rogue.USED = {
   ["Blade Flurry"] = "suggested as a cooldown",
   ["Adrenaline Rush"] = "suggested as a cooldown",
   ["Improved Gouge"] = "the Backstab window after Gouge lasts 0.5 s longer per rank",
+  ["Venom"] = "finisher kept up (after Slice and Dice) at full combo points",
+  ["Cutthroat"] = "Ambush suggested out of stealth when Cutthroat allows it",
   ["Improved Kick"] = "Kick is suggested when the target casts something interruptible",
 }
 -- Classic talents that only add damage, crit, energy or avoidance: nothing to press differently.
@@ -45,6 +47,8 @@ Rogue.PASSIVE = {
   "Precision", "Endurance", "Improved Sprint", "Dual Wield Specialization", "Weapon Expertise",
   "Aggression", "Hack and Slash", "Camouflage", "Master of Deception", "Opportunity", "Setup", "Elusiveness",
   "Initiative", "Improved Distract", "Heightened Senses", "Dirty Deeds",
+  -- Forever's new talents (texts from /bwp book, 2026-10-03):
+  "Puncturing Wounds", "Flawless Execution", "Dirty Tricks", "Quietus", "Thousand Cuts",
 }
 
 function Rogue.DurationScale(name, talents)
@@ -100,6 +104,10 @@ local function finisher(s, spec)
     return act(s, "Slice and Dice", snd and "Slice and Dice is about to fall off" or "Slice and Dice is down")
   end
   local full = (spec == "assassination" and known(s, "Mutilate")) and 4 or 5 -- Mutilate adds 2 at a time
+  -- Venom (Assassination capstone): poisons +30% damage while it lasts.
+  if cp >= full and not dying and not s.buffs["Venom"] and ready(s, "Venom") then
+    return act(s, "Venom", "Venom is down: poisons hit 30% harder")
+  end
   local rupture = spec ~= "combat" or talent(s, "Serrated Blades")
   -- A long fight is worth bleeding. Health is hidden in combat, so then only
   -- elites and bosses count (or anything, with Serrated Blades): ordinary mobs
@@ -118,6 +126,11 @@ end
 
 local function builder(s, spec)
   if ready(s, "Riposte") then return act(s, "Riposte", "after a parry") end
+  -- Cutthroat: a Backstab can let your next Ambush skip Stealth (the game
+  -- then says Ambush is usable out of stealth).
+  if not s.stealthed and dagger(s) and talent(s, "Cutthroat") and ready(s, "Ambush") then
+    return act(s, "Ambush", "Cutthroat: Ambush without Stealth")
+  end
   local order = {}
   if spec == "assassination" then order[#order + 1] = "Mutilate" end
   if spec == "subtlety" then
@@ -127,8 +140,10 @@ local function builder(s, spec)
   -- Backstab needs a main-hand dagger and being behind the target, which the
   -- game doesn't tell addons: only when you've said so (/bw behind), or while
   -- your Gouge holds it (step behind it and Backstab).
+  -- (Gouge stops your auto-attack, so only your next ability breaks it.)
+  -- Mutilate stays first: 2 combo points, and it works from the front.
   local gouged = s.debuffs["Gouge"] ~= nil
-  if dagger(s) and (s.behind or gouged) then table.insert(order, 1, "Backstab") end
+  if dagger(s) and (s.behind or gouged) then table.insert(order, order[1] == "Mutilate" and 2 or 1, "Backstab") end
   order[#order + 1] = "Sinister Strike"
   for _, name in ipairs(order) do
     if ready(s, name) then
@@ -151,6 +166,8 @@ local function cooldown(s, spec)
     return { spell = "Premeditation", why = "before your opener" }
   end
   if not s.inCombat then return nil end
+  -- Gnome racial: the next 3 attacks cost 10% less and hit 10% harder (2 min).
+  if ready(s, "Eureka!") then return { spell = "Eureka!", why = "racial: 3 cheaper, harder attacks" } end
   if spec == "combat" then
     if ready(s, "Adrenaline Rush") then return { spell = "Adrenaline Rush", why = "ready" } end
     if ready(s, "Blade Flurry") then return { spell = "Blade Flurry", why = "ready (best with two targets)" } end

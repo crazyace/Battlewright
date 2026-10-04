@@ -3,29 +3,26 @@
 This is the working theory behind Battlewright's Rogue rotation and Gearwright's Rogue
 advice. It covers the level 30 cap of the beta.
 
-**How sure each part is:**
-
-- **Confirmed on Forever:** the tree layout, prerequisites and trainer levels, from
-  probe captures.
-- **Classic values:** the numbers for unchanged talents. These are assumed until
-  `/bwp book` captures Forever's own text.
-- **Unknown:** what the new Forever talents do (Venom, Puncturing Wounds, Flawless
-  Execution, Dirty Tricks, Quietus, Cutthroat, Thousand Cuts). They stay unknown until
-  that capture.
+**Sources:**
+- **Talent texts:** Forever's own, for every rank. They come from `/bwp book` on Sassy
+  (Gnome, level 19, 2026-10-03).
+- **Spell texts and costs:** from the same capture.
+- **Trainer levels:** from verified trainer captures.
+- **Estimates:** anything not in those captures is marked *(estimate)*.
 
 ## Points and rows
 
 - **Talent points:** the first comes at level 10, then one per level, so you have
   **21 points at 30**.
-- **Rows:** each row needs 5 more points in that spec, as in Classic. The Traits tree
-  gates rows with one condition each (43440-43456).
-- **What 21 points reaches:**
-  - **Row 5** (20 points: Mutilate, Hack and Slash, Blade Flurry, Hemorrhage,
-    Preparation) only at **level 29-30**, and only with almost every point in one spec.
-  - **Rows 6-7** (Seal Fate, Aggression, Weapon Expertise, Quietus, Cutthroat, Venom,
-    Adrenaline Rush, Thousand Cuts) are **out of reach at 30**.
+- **Rows:** each row needs **5 more points in the same tree**. The game's own conditions
+  confirm this: rows 2-7 need 5 / 10 / 15 / 20 / 25 / 30 points.
+- **Row 5 at 30:** row 5 (Mutilate, Hack and Slash, Blade Flurry, Hemorrhage,
+  Preparation, Vigor, Improved Kidney Shot) needs 20 points in that tree. That's only
+  possible at 29-30, and only with almost every point in one tree.
+- **Out of reach at 30:** rows 6-7 (Seal Fate, Aggression, Weapon Expertise, Quietus,
+  Cutthroat, and the capstones Venom, Adrenaline Rush and Thousand Cuts).
 
-**Prerequisites seen on Forever** (tree edges):
+**Prerequisites:**
 
 | Talent | Needs |
 |---|---|
@@ -38,160 +35,182 @@ advice. It covers the level 30 cap of the beta.
 | Quietus | Dirty Deeds |
 | Thousand Cuts | Preparation |
 
-## Abilities by level (Forever trainer, verified)
+## Your abilities (level 19, Forever texts)
+
+| Ability | Cost | What it does |
+|---|---|---|
+| Sinister Strike (R3) | 45 | Weapon damage + 10. 1 combo point |
+| Backstab (R2) | 60 | **150% weapon damage + 30**. From behind, dagger in main hand. 1 CP |
+| Ambush (R1) | 60 | **250% weapon damage + 70**. Stealthed **and behind**, dagger. 1 CP |
+| Garrote (R1) | 50 | 144 over 18 s (+AP). Stealthed and behind. 1 CP |
+| Gouge (R2) | 45 | 20 damage, incapacitates 4 s, **stops your auto-attack**. Target must face you. 10 s cooldown. 1 CP |
+| Eviscerate (R3) | 35 | 101-115 at 5 points (+AP) |
+| Slice and Dice (R1) | 25 | +20% attack speed, 9/12/15/18/21 s |
+| Expose Armor (R1) | 25 | -450 armor at 5 points, 30 s |
+| Kick (R1) | 25 | 15 damage, interrupt, 5 s school lockout. 10 s cooldown |
+| Feint (R1) | 20 | Less threat. 10 s cooldown |
+| Sap (R1) | 65 | 25 s incapacitate, humanoids out of combat |
+| Evasion / Sprint | 0 | +50% dodge / +50% speed for 15 s. 5 min cooldown each |
+
+**Gnome racials:**
+- **Eureka!**, new on Forever: your next 3 attacks cost 10% less and hit 10% harder. 2 min
+  cooldown.
+- **Expansive Mind:** +5% max energy, so **105 energy**.
+- **Escape Artist.**
+
+Energy regeneration is **10 per second**.
+
+**Damage per energy** (W = your main hand's average hit):
+- **Sinister Strike:** (W + 10) / 45.
+- **Backstab:** (1.5 W + 30) / 60.
+
+With a level-20-ish dagger (W ≈ 20), that's **0.67 for Sinister Strike against 1.0 for
+Backstab**. Backstab does about 50% more damage per energy whenever you can get behind.
+
+**Abilities still to come:**
 
 | Level | New |
 |---|---|
-| 1-8 | Stealth, Sinister Strike, Eviscerate, Backstab (4), Pick Pocket, Gouge (6), Evasion (8) |
-| 10 | Dual Wield, Sap, **Slice and Dice**, Sprint, first talent point |
-| 12 | Kick, Parry, Backstab 2 |
-| 14 | Garrote, Expose Armor, Sinister Strike 3 |
-| 16 | Feint, Pick Lock, Eviscerate 3 |
-| 18 | **Ambush**, Gouge 2 |
-| 20 | **Rupture**, Crippling Poison, Stealth 2, Backstab 3 |
-| 22 | **Vanish**, Distract, Garrote 2, Sinister Strike 4 |
-| 24 | Eviscerate 4, Mind-numbing Poison, Detect Traps |
-| 26 | **Cheap Shot**, Ambush 2, Kick 2, Expose Armor 2 |
-| 28 | **Instant Poison II** (no rank 1 at the trainer), Backstab 4, Rupture 2, Sap 2, Feint 2 |
+| 20 | **Rupture**, Crippling Poison, Backstab 3 |
+| 22 | **Vanish**, Sinister Strike 4, Garrote 2 |
+| 24 | Eviscerate 4, Mind-numbing Poison |
+| 26 | **Cheap Shot**, Ambush 2, Kick 2 |
+| 28 | **Instant Poison II** (no rank 1 at the trainer), Backstab 4, Rupture 2, Feint 2 |
 | 30 | **Kidney Shot**, **Deadly Poison**, Sinister Strike 5, Garrote 3 |
 
-**What follows from this:**
+The first damaging poison comes at 28, so poison talents do nothing before then.
 
-- **Poisons:** the first damaging poison is Instant Poison II at 28, so poison talents
-  (Vile Poisons, Improved Poisons) do nothing for most of the climb.
-- **Cheap Shot:** arrives at 26, so before that a dagger opener is Ambush (18+) or
-  Garrote (14+).
-- **Kidney Shot:** at 30, which makes Improved Kidney Shot a level 30 consideration only.
+## Talents (Forever values)
 
-## The three trees, for levels 10-30
+**Assassination**
 
-**Assassination**: crit and finishers. This is the strongest pick for 10-30.
-
-| Talent | What it does (Classic values) | Verdict |
+| Talent | Max rank | Verdict for 10-30 |
 |---|---|---|
-| Malice 5 | +5% crit | Core. Needed for Lethality |
-| Remorseless Attacks 2 | +40% crit on the next builder or Ambush after a kill | Great for chain-pulling |
-| Improved Gouge 3 | Gouge +1.5 s | Only worth it if you Gouge → Backstab a lot |
-| Ruthlessness 3 | 60% chance a finisher leaves 1 combo point | Core: the next Slice and Dice or Eviscerate comes sooner |
-| Murder 2 | +2% damage to humanoids, beasts, giants and dragonkin | Good filler; covers most mobs |
-| Improved Slice and Dice 3 | Slice and Dice +45% duration | Good: fewer refreshes |
-| **Lethality 5** | **+30% crit damage on SS, Backstab, Gouge, Ghostly, Hemo, Mutilate** | **The best 5 points before 30** |
-| **Relentless Strikes 1** | 20% chance per combo point to get 25 energy back (100% at 5) | **Must-have**: every 5-point finisher refunds 25 energy |
-| Improved Expose Armor 2 | Expose Armor stronger | Skip: Expose Armor is a group tool |
-| Cold Blood 1 | Next ability crits (3 min) | Strong: a 5-point Eviscerate crit kills most mobs |
-| Vile Poisons / Improved Poisons | Poison damage / proc chance | Skip until 28+ |
-| Vigor 2 | More max energy | Fine, but row 5 is a stretch at 30 |
-| **Mutilate 1** | (Forever version unknown) | Row 5. In TBC it needs a dagger in **both** hands |
+| Malice | +5% crit with attacks **and poisons** | Core |
+| Remorseless Attacks | +40% crit on the next SS, Backstab, Ambush or Mutilate after a kill, 20 s | Great for chain pulls |
+| Improved Gouge | Gouge +1.5 s | Optional: a longer Gouge → Backstab window |
+| Ruthlessness | 60% chance a finisher leaves 1 combo point | Core |
+| Murder | +4% damage, **Humanoids and Giants only** | Weaker than Classic, which also covered beasts |
+| Improved Slice and Dice | +45% duration | Good. It's also the cleanest way to reach 20 points |
+| Lethality | **+20%** crit damage on SS, Gouge, Backstab, Mutilate, Ghostly, Hemo | Core (Classic was +30%) |
+| Relentless Strikes | 20% per combo point to get **25 energy** back (certain at 5) | Must-have |
+| Improved Expose Armor | -10 energy, and refunds 2 combo points at 5 | Group tool |
+| Cold Blood | Next SS, Backstab, Ambush, **Eviscerate** or Mutilate is +100% crit | Strong: a 5-point Eviscerate crit |
+| Vile Poisons | Poisons +20% damage | 28+ only |
+| Improved Poisons | +10% chance to apply poison, 50% chance an application doesn't use a charge | 28+ only |
+| Vigor | +10 max energy | Filler for row 5 |
+| Improved Kidney Shot | +10% damage taken while Kidney Shot stuns | Kidney Shot is level 30 |
+| **Mutilate** | **Hits with both weapons for 75% damage + 13 each, +20% vs poisoned, 2 combo points** | **The level 30 goal** (see below) |
+| Seal Fate | Builder crits: 100% chance of an extra combo point | Row 6: not at 30 |
+| Venom | Finisher: poisons +30% damage, +10% chance to apply, 9-21 s | Row 7: not at 30 |
 
-**Combat**: survival and steady damage, any weapon.
+**Combat**
 
-- **Improved Sinister Strike 2:** -5 energy on SS, about 11% more Sinister Strikes. Strong
-  for anyone who spams SS.
-- **Improved Eviscerate 3:** +15% Eviscerate damage. Row 1 is open to every spec, so
-  these are cheap points for anyone.
-- **Lightning Reflexes and Deflection:** dodge and parry. Safe, but no damage.
-- **Precision 3:** +3% hit. Very good while dual-wielding, since off-hand misses are
-  high; it's also the prerequisite for Dual Wield Specialization.
-- **Riposte:** an extra button after a parry, and it disarms.
-- **Dual Wield Specialization 5:** +50% off-hand damage. Large when the off hand is
-  decent.
-- **Hack and Slash 5** (row 5, 20 points):
-  - axe or sword: 5% chance of an extra attack;
-  - dagger or fist: +5% crit;
-  - mace: ignores 15% armor.
-- **Blade Flurry** (row 5): cleave and attack speed.
-
-Combat is Classic's levelling favourite because it's forgiving. On Forever its payoff
-(Hack and Slash, Blade Flurry) only arrives at 29-30.
-
-**Subtlety**: openers and utility. It's mostly a PvP and stealth tree before 30.
-
-- **Opportunity:** extra damage on Backstab, Garrote and Ambush.
-- **Improved Ambush:** extra crit on Ambush.
-- **Initiative:** a chance at an extra combo point from openers.
-- **Premeditation** (row 4): 2 combo points from stealth.
-- **Hemorrhage** (row 5): needs Serrated Blades. Serrated Blades only helps Rupture, which
-  comes at 20.
-
-Subtlety is weak for killing mobs quickly.
-
-## Recommended build to 30: Assassination with daggers
-
-This continues from what you have (Malice 5, Remorseless Attacks 2, Ruthlessness 3, which
-is 10 points by level 19):
-
-| Level | Point | Why |
+| Talent | Max rank | Verdict |
 |---|---|---|
-| 20-24 | Lethality 1-5 | Your SS, Gouge and Backstab crits hit 30% harder |
-| 25 | Relentless Strikes | Energy back on every 5-point finisher |
-| 26 | Cold Blood | A guaranteed 5-point Eviscerate crit every 3 minutes |
-| 27-29 | Improved Slice and Dice 3 | Slice and Dice up longer, and it brings Assassination to **20 points at 29** |
-| 30 | Mutilate, or Improved Eviscerate 1 | See below |
+| Improved Eviscerate | **+20%** Eviscerate | Cheap row 1 points for any spec |
+| Improved Sinister Strike | -5 energy on SS | Good while SS is your builder |
+| Lightning Reflexes | +5% dodge | Survival |
+| **Puncturing Wounds** (new) | **Backstab +30% crit, 45% chance of an extra combo point**; Mutilate +15% crit | Very strong for Backstab play (row 2) |
+| Precision | +3% hit | Dual wield needs it |
+| Deflection | +6% parry | Survival; leads to Riposte |
+| Endurance | -60% Sprint and Evasion cooldown | Survival |
+| Riposte | After a parry: 150% weapon damage, disarm 6 s | Situational |
+| Improved Sprint | Sprint removes snares | PvP |
+| Improved Kick | Kick silences for 2 s | PvP and casters |
+| Flawless Execution (new) | Eviscerate -10 energy | Good (row 4) |
+| Dual Wield Specialization | **+25%** off-hand damage | Good with a real off hand |
+| Hack and Slash | Axe/Sword 5% extra attack, Dagger/Fist +5% crit, Mace ignores 15% armor | Row 5 |
+| Blade Flurry | +20% attack speed and cleave, 15 s | Row 5 |
 
-That path is all 21 points in Assassination, which is exactly what unlocks row 5 at 30.
-The level 30 point depends on Mutilate:
+**Subtlety (short version)**
 
-- **Mutilate works with your weapons and hits hard:** take Mutilate.
-- **Mutilate needs two daggers and you don't have them:** take Improved Eviscerate 1
-  (Combat row 1), or Vigor or Improved Kidney Shot in row 5.
+| Talent | Max rank | Verdict |
+|---|---|---|
+| Opportunity | +10% Backstab, Garrote, Ambush, Mutilate | 2 cheap points for dagger play (row 1) |
+| Improved Ambush | +45% Ambush crit | Openers |
+| Initiative | 100% chance of an extra combo point on Ambush, Garrote, Cheap Shot | Openers |
+| Ghostly Strike | 125% weapon damage (**180% with a dagger**), +15% dodge, 1 CP | Openers and survival |
+| Premeditation | 2 combo points from stealth | Openers |
+| Serrated Blades | 9% armor ignore, Rupture +30% | Leads to Hemorrhage |
+| Dirty Deeds | Cheap Shot and Garrote -20 energy; Garrote from the front | Openers |
+| Hemorrhage | 100% weapon damage (**145% with a dagger**), Rupture +15% taken, 1 CP | Row 5 |
+| Cutthroat, Quietus, Thousand Cuts | Backstab can enable Ambush; SS/Hemo +10% under 35% health; Rupture makes Backstab cheaper | Rows 6-7: not at 30 |
 
-**Alternatives that give up Mutilate:**
+The rest of Subtlety is stealth and PvP utility.
 
-- **Murder 2 instead of Improved Slice and Dice:** +2% damage on most mobs.
-- **Improved Eviscerate 3 at 27-29 instead:** +15% on your main finisher.
+## Mutilate: why it's the level 30 goal
 
-Both are as good for levelling. The cost is that you won't reach row 5 at 30.
+Forever's Mutilate text names **no weapon type and no facing**. Backstab's and Ambush's
+texts both spell out "must be behind" and "requires a dagger", so the absence looks
+deliberate.
 
-## How to play it (what Battlewright suggests)
+What that would mean:
+- **Front-facing:** it works while the mob faces you, which is solo play.
+- **Twice the combo points:** 2 per press.
+- **Damage:** about 0.75 × (main hand + off hand) + 26, before the 20% poison bonus.
+- **Cost:** not in the talent text. *(Estimate: 60, as in TBC.)*
 
-**Out of stealth (solo, the mob faces you):**
+At 60 energy that's 2 combo points per 60 energy, against Sinister Strike's 1 per 45. It
+reaches a 4-point Eviscerate in **two presses instead of four**.
 
-1. **Slice and Dice** on 1-2 combo points when it's down. With Ruthlessness, a finisher
-   often leaves you a point, which is enough to start it.
-2. **Sinister Strike** up to 5 combo points.
-3. **Eviscerate at 5.** Relentless Strikes needs 5 points to refund for certain; at 3-4
-   only when the mob is nearly dead.
-4. **Cold Blood** right before a 5-point Eviscerate.
-5. **Rupture** only on elites and bosses. Normal mobs die before it pays off.
+*To verify at 30:* does it need daggers in both hands, and what does it cost? If the game
+refuses it with another weapon, Battlewright falls back to Sinister Strike by itself,
+because it checks whether each spell is usable.
 
-**From stealth:**
+## Recommended build to 30
 
-- **Ambush** with a dagger in your main hand (Remorseless Attacks makes it crit often
-  after a kill).
-- **Garrote** otherwise.
-- **Cheap Shot** (26+) when you'd rather stun than burst.
+You have Malice 5, Remorseless Attacks 2 and Ruthlessness 3 (10 points at 19).
 
-**Dagger tricks:**
+| Level | Point | Assassination total | Why |
+|---|---|---|---|
+| 20-24 | **Lethality 5** | 15 | +20% crit damage on everything you build with |
+| 25 | **Relentless Strikes** | 16 | 25 energy back on every 5-point finisher |
+| 26 | **Cold Blood** | 17 | A guaranteed 5-point Eviscerate crit every 3 min |
+| 27-29 | **Improved Slice and Dice 3** | 20 | Fewer refreshes, and it unlocks row 5 |
+| 30 | **Mutilate** | 21 | 2 combo points per press, from the front |
 
-- **Gouge → step behind → Backstab.** Battlewright suggests Backstab while your Gouge
-  holds.
-- **Groups:** stand behind the mob and use `/bw behind`. Backstab is then your builder.
+**If Mutilate turns out to need two daggers and you don't want that:** use the same
+first 17 points, then **Improved Eviscerate 3 + Improved Sinister Strike 1** (Combat
+row 1). You'd have Eviscerate +20% and cheaper Sinister Strikes for the level 30
+Sinister Strike/Eviscerate grind.
 
-**Kick** casters: Battlewright flags it whenever the target is casting.
+**Puncturing Wounds** (Backstab +30% crit, extra combo points) needs 5 points in Combat
+before it, so 8 points in total. Taking it means giving up Relentless Strikes and Cold Blood, or
+Mutilate. It isn't worth it at 30 unless you mostly play
+in groups from behind.
 
-**Rupture and Relentless Strikes:** Rupture also refunds energy, but it's slow damage.
-Eviscerate is the levelling finisher.
+## How to play it (Battlewright follows this)
+
+**Solo, the mob facing you:**
+
+1. **Slice and Dice** on 1-2 combo points when it's down. Ruthlessness often hands you
+   the point.
+2. **Mutilate** at 30; before that, **Sinister Strike**.
+3. **Eviscerate** at 5 combo points (4 with Mutilate, so a 2-point Mutilate isn't
+   wasted). **Cold Blood** goes just before it.
+4. **Rupture** only on elites and bosses.
+5. **Eureka!** whenever it's ready in a fight (2 min).
+
+**Stealth:** walk behind the mob, then **Ambush** with a dagger, else **Garrote**.
+Remorseless Attacks makes the opener after a kill likely to crit, and it lasts 20 s, so
+chain pulls.
+
+**Gouge → step behind → Backstab:** Gouge stops your auto-attack, so nothing breaks it
+until your next ability. Battlewright suggests Backstab during the Gouge (Mutilate first,
+once you have it).
+
+**Groups:** stand behind and use `/bw behind`. Backstab, at about 50% more damage per
+energy, becomes your builder.
 
 ## Weapons
 
-- **Ambush and Backstab need a main-hand dagger.** Gouge → Backstab and group Backstab
-  both depend on it.
-- **Sinister Strike uses your main hand.** In Classic, abilities aren't normalized, so a
-  slow weapon (sword, mace, axe) makes each SS, Eviscerate proc and white hit bigger.
-  Daggers are fast and hit softer per swing. Whether Forever normalizes is unknown.
-- **The trade-off:**
-  - **Solo SS play** favours a slow main hand: Combat style, or Assassination with a
-    sword or mace.
-  - **Dagger play** (Ambush openers, Gouge → Backstab, groups) favours daggers.
-- **Off hand:** the faster the better, for poison procs and smoother white damage. Any
-  weapon type works.
-
-## Open questions (answered by `/bwp book`)
-
-1. **Forever's new talents:** what do Mutilate, Venom, Puncturing Wounds and Flawless
-   Execution do, and does Mutilate need two daggers?
-2. **Changed values:** are the Classic numbers above still right? Classic Precision had 5
-   ranks and Forever's has 3; Classic Deflection had 5 and Forever's has 3.
-3. **Dirty Tricks, Quietus, Cutthroat and Thousand Cuts:** what do they do?
-4. **Normalization:** does Sinister Strike scale with weapon speed? That decides the
-   dagger vs slow-weapon question. The ability text shows it as "weapon damage plus X".
+- **Dagger main hand:** needed for Ambush, Backstab and Gouge → Backstab. Every one of
+  them scales with weapon damage (150-250%), so **a slow, high-damage dagger** is best.
+- **Off hand:**
+  - **Mutilate** uses 75% of it.
+  - **Dual Wield Specialization** (Combat) adds up to 25% of it.
+  - **Poisons from 28** proc from it.
+- **Sword, mace or axe main hand:** only Sinister Strike and Eviscerate. That's fine for
+  pure Sinister Strike play, and Hack and Slash rewards it from row 5. But it gives up
+  Ambush and Backstab.

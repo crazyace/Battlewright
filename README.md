@@ -49,15 +49,17 @@ The theory behind these (talents, builds, abilities by level, weapons) is in
 2. Slice and Dice when it's down or about to fall off (2 s). In combat its timer is
    estimated from your cast: 6 + 3 s per combo point, +15% per rank of Improved Slice
    and Dice.
-3. Rupture at full combo points on a target above 50% health (Assassination,
-   Subtlety, or any spec with Serrated Blades).
-4. Eviscerate at full combo points (4 with Mutilate, else 5), or 3+ on a target under
+3. Venom (if talented) at full combo points when it's down.
+4. Rupture at full combo points on a long fight: a target above 50% health, or, in
+   combat where health is hidden, an elite or boss (Assassination, Subtlety, or any
+   spec with Serrated Blades).
+5. Eviscerate at full combo points (4 with Mutilate, else 5), or 3+ on a target under
    25% (when its health is readable).
-5. Build: Riposte after a parry; Mutilate (Assassination), Ghostly Strike or
+6. Build: Riposte after a parry; Ambush out of stealth when Cutthroat allows it; Mutilate (Assassination), Ghostly Strike or
    Hemorrhage (Subtlety), Backstab (dagger + `/bw behind`, or after your Gouge), else Sinister Strike.
-6. Cooldowns (small icon): Kick when the target casts (shown big; the game hides it
-   for casts that can't be interrupted), Adrenaline Rush and Blade Flurry (Combat), Cold Blood before a finisher
-   (Assassination), Preparation once Vanish and Evasion are used.
+7. Cooldowns (small icon): Eureka! (Gnome racial), Kick when the target casts (shown big; the game hides it
+   for casts that can't be interrupted), Adrenaline Rush and Blade Flurry (Combat), Cold Blood at full combo
+   points (Assassination), Preparation once Vanish and Evasion are used.
 
 Out of melee range, the icon turns red and says so. Rupture's timer is kept per target.
 

@@ -30,7 +30,7 @@ State.SPELLS = {
   ROGUE = { "Sinister Strike", "Eviscerate", "Slice and Dice", "Rupture", "Backstab", "Ambush",
     "Cheap Shot", "Garrote", "Mutilate", "Hemorrhage", "Ghostly Strike", "Riposte", "Kick",
     "Blade Flurry", "Adrenaline Rush", "Cold Blood", "Premeditation", "Preparation", "Expose Armor",
-    "Vanish", "Evasion", "Sprint", "Gouge" },
+    "Vanish", "Evasion", "Sprint", "Gouge", "Venom", "Eureka!" },
 }
 
 local function auras(unit, filter, now)

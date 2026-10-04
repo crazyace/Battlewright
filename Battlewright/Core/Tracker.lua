@@ -14,11 +14,12 @@ Tracker.DURATION = {
   ["Slice and Dice"] = function(cp) return 6 + 3 * cp end, -- 9 / 12 / 15 / 18 / 21
   ["Rupture"] = function(cp) return 6 + 2 * cp end,        -- 8 / 10 / 12 / 14 / 16
   ["Gouge"] = function() return 4 end,
+  ["Venom"] = function(cp) return 6 + 3 * cp end,          -- 9 / 12 / 15 / 18 / 21
 }
 local ON_TARGET = { ["Rupture"] = true, ["Gouge"] = true } -- debuffs: kept per target (its GUID is readable)
 local NO_CP = { ["Gouge"] = true } -- not a finisher: no combo points needed
 -- Your casts that don't hit the target, so don't break its Gouge.
-local HARMLESS = { ["Slice and Dice"] = true, ["Gouge"] = true, ["Sprint"] = true, ["Evasion"] = true,
+local HARMLESS = { ["Slice and Dice"] = true, ["Venom"] = true, ["Eureka!"] = true, ["Gouge"] = true, ["Sprint"] = true, ["Evasion"] = true,
   ["Vanish"] = true, ["Cold Blood"] = true, ["Adrenaline Rush"] = true, ["Blade Flurry"] = true,
   ["Premeditation"] = true, ["Preparation"] = true }
 

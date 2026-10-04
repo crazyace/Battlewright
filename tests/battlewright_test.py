@@ -157,7 +157,7 @@ L.execute("GAME.stealthed = false")
 L.execute("""
 NODES = {
   { group = 11580, name = "Improved Slice and Dice", rank = 3 }, { group = 11580, name = "Malice", rank = 5 },
-  { group = 11580, name = "Venom", rank = 1, spellID = 1310703 }, { group = 11580, name = "Lethality", rank = 12 },
+  { group = 11580, name = "Venom", rank = 1, spellID = 1310703 }, { group = 11580, name = "Shadow Trick", rank = 1, spellID = 999001 }, { group = 11580, name = "Lethality", rank = 12 },
   { group = 11573, name = "Precision", rank = 3 },
 }
 C_ClassTalents = { GetActiveConfigID = function() return 1 end }
@@ -168,7 +168,7 @@ C_Traits = {
   GetEntryInfo = function(_, id) return { definitionID = id } end,
   GetDefinitionInfo = function(id) return { overrideName = NODES[id].name, spellID = NODES[id].spellID } end,
 }
-C_Spell.GetSpellDescription = function(id) if id == 1310703 then return "Your finishing moves poison the target." end end
+C_Spell.GetSpellDescription = function(id) if id == 999001 then return "Something new." end end
 """)
 L.globals().fire("PLAYER_TALENT_UPDATE")
 L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
@@ -188,7 +188,8 @@ out = "\n".join(L.globals().printed.values())
 print(out)
 assert "spec: assassination (talents)" in out and "Improved Slice and Dice 3: Slice and Dice lasts 15% longer" in out, out
 assert "no change to the rotation:|r Malice 5, Lethality 12" in out or "Malice 5" in out, out
-assert "not used yet|r  Venom 1: Your finishing moves poison the target." in out, out
+assert "used|r  Venom 1: finisher kept up" in out, out
+assert "not used yet|r  Shadow Trick 1: Something new." in out, out
 # Backstab: with a dagger and /bw behind, for a Combat Rogue (no Mutilate).
 L.globals().SlashCmdList.BATTLEWRIGHT("spec combat")
 assert show(known={"Sinister Strike": 45, "Backstab": 60, "Eviscerate": 35, "Slice and Dice": 25}, cp=0,
@@ -282,6 +283,9 @@ L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("GAME.sndAura = nil; GAME.blocked = false; GAME.energySecret = false; GAME.guid = nil; issecretvalue = nil")
 L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
 
+# Eureka! (Gnome racial) is suggested as a cooldown in combat.
+show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Eureka!": 0}, cp=1, buffs=[["Slice and Dice", 130]])
+assert L.eval("function(ns) local v = ns.Display.Compute() return v.cooldown and v.cooldown.spell end")(ns) == "Eureka!"
 # Cold Blood waits for full combo points: 5 without Mutilate.
 L.globals().SlashCmdList.BATTLEWRIGHT("spec assassination")
 cb = lambda: L.eval("function(ns) local v = ns.Display.Compute() return v.cooldown and v.cooldown.spell end")(ns)
@@ -311,6 +315,19 @@ assert tuple(why())[0] == "Sinister Strike"
 # Gouge wears off after 4 s (no Improved Gouge).
 cast("Gouge"); L.execute("GAME.now = GAME.now + 4.5")
 assert tuple(why())[0] == "Sinister Strike"
+# With Mutilate (2 combo points, works from the front), it stays first even after Gouge.
+L.globals().SlashCmdList.BATTLEWRIGHT("spec assassination")
+show(known=dict(gk, Mutilate=60), cp=1)
+L.eval("function(ns) ns.Tracker.expires['Slice and Dice'] = GAME.now + 20 end")(ns)
+cast("Gouge")
+assert tuple(why())[0] == "Mutilate", tuple(why())
+# Venom: kept up at full combo points, after Slice and Dice; then Eviscerate.
+show(known=dict(gk, Mutilate=60, Venom=25), cp=4)
+L.eval("function(ns) ns.Tracker.expires['Slice and Dice'] = GAME.now + 20 end")(ns)
+assert tuple(why())[0] == "Venom", tuple(why())
+cast("Venom")
+assert tuple(why())[0] == "Eviscerate", tuple(why())
+L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("GAME.blocked = false; GAME.mainHand = nil; GAME.guid = nil; GAME.now = 100; GAME.cp = 0")
 L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
 L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
