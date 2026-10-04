@@ -73,7 +73,7 @@ Out of melee range, the icon turns red and says so. Rupture's timer is kept per 
 | `/bw spec combat` | Play a spec regardless of talents (`auto` to go back) |
 | `/bw target` | Also show out of combat with an enemy targeted |
 | `/bw behind` | Assume you're behind the target: suggest Backstab with a dagger |
-| `/bw guide [solo\|group]` | A window with your rotation, with Solo and Group tabs (it opens on Group while you're in a party). Group: the tank pulls first, Backstab from behind is the builder, Rupture on bosses, Feint for threat, Expose Armor only without Sunder Armor. The window shows at the top, one typical fight as icons (opener, each cycle with Eureka! and Cold Blood where they go, elites, Kick, the Gouge trick, Backstab in groups); below it, written out: setup (weapons), opener, priority, cooldowns, the talents that shape it, and what's coming up. Built from your spells, talents and weapons; same rules as the icon |
+| `/bw guide [solo\|group]` | A window with your rotation, with Solo and Group tabs (it opens on Group while you're in a party). Group: the tank pulls first, Backstab from behind is the builder, Rupture on bosses, Feint for threat, Expose Armor only without Sunder Armor. At the top it shows one typical fight as icons (opener, each cycle with Eureka! and Cold Blood where they go, elites, Kick, the Gouge trick, Backstab in groups); below it, written out: setup (weapons), opener, priority, cooldowns, the talents that shape it, and what's coming up. Built from your spells, talents and weapons; same rules as the icon |
 | `/bw talents` | Your spec and talents, and how the rotation uses them |
 | `/bw on`, `/bw off` | Turn it on or off |
 | `/bw reset` | Put the icon back in the middle |
