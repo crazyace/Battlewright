@@ -233,18 +233,42 @@ for want in ["# From stealth", "Ambush, from behind", "Kick the moment the targe
 # Priority order matches the rotation: Kick, Gouge, Slice and Dice, Eviscerate, builders.
 order = [guide.index(x) for x in ["Kick the moment", "Gouge, step behind", "Slice and Dice when", "Eviscerate at", "Backstab when", "Sinister Strike to build"]]
 assert order == sorted(order), order
+# The rotation path at the top: one typical fight as icons.
+path_text = """function(ns) local out = {}
+  for _, lane in ipairs(ns.Guide.path) do
+    local steps = {}
+    for _, st in ipairs(lane.steps) do
+      steps[#steps + 1] = st.text or (st.spell .. (st.count and ("x" .. st.count) or "") .. (st.note and ("(" .. st.note .. ")") or ""))
+    end
+    out[#out + 1] = lane.label .. ": " .. table.concat(steps, " > ")
+  end
+  return table.concat(out, " | ") end"""
+path = L.eval(path_text)(ns)
+print(path)
+assert "From stealth: Ambush(behind)" in path, path
+# Eureka! at 3 combo points: 3 Sinister Strikes, Eureka!, 2 more, Eviscerate at 5.
+assert "Each cycle: Slice and Dice(1-2 pts) > Sinister Strikex3 > Eureka!(at 3 pts) > Sinister Strikex2 > Eviscerate(at 5) > repeat" in path, path
+assert "Mob casts: Kick(any time)" in path and "Gouge trick: Gouge(front) > step behind > Backstab(4 s window)" in path, path
+assert "Behind (groups): Backstab(replaces SS)x5" in path or "Behind (groups): Backstabx5(replaces SS)" in path, path
+cells = L.eval("function(ns) local n = 0 for _, c in ipairs(ns.Guide.frame.cells) do if c.icon.tex then n = n + 1 end end return n end")(ns)
+assert cells == 11, cells  # Ambush; SnD, SS, Eureka!, SS, Eviscerate; Kick; Gouge, Backstab; Backstab, Eviscerate
 # The window drew a line per row, with the spell's icon.
 lines = L.eval("function(ns) local n = 0 for _, l in ipairs(ns.Guide.frame.lines) do if l.text.text then n = n + 1 end end return n end")(ns)
 assert lines >= 15, lines
 # With a sword and Mutilate: no Ambush/Backstab, finish at 4, Eureka! at 0+... (4 - 2x2 = 0).
 L.execute("GAME.mainHand = 7"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
-show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Mutilate": 60, "Gouge": 45, "Cold Blood": 0})
+show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Mutilate": 60, "Gouge": 45, "Cold Blood": 0,
+            "Eureka!": 0})
 L.eval("function(ns) ns.Guide.Refresh() end")(ns)
 guide2 = L.eval("""function(ns) local out = {} for _, sec in ipairs(ns.Guide.sections) do
   for _, r in ipairs(sec.rows) do out[#out + 1] = r.text end end return table.concat(out, "\\n") end""")(ns)
 assert "Main hand: a sword" in guide2 and "Ambush, from behind" not in guide2, guide2
 assert "Eviscerate at 4 combo points" in guide2 and "Gouge, step behind, Mutilate" in guide2, guide2
 assert "Cold Blood right before a 4-point Eviscerate" in guide2, guide2
+# With Mutilate: Eureka! first (its charges: Mutilate, Mutilate, Eviscerate), Cold Blood before the finisher.
+path2 = L.eval(path_text)(ns)
+assert "Each cycle: Slice and Dice(1-2 pts) > Eureka!(first) > Mutilatex2 > Cold Blood(crit) > Eviscerate(at 4) > repeat" in path2, path2
+assert "From stealth" not in path2 and "Gouge trick: Gouge(front) > step behind > Mutilate(4 s window)" in path2, path2
 L.globals().SlashCmdList.BATTLEWRIGHT("guide")  # closes it
 assert L.eval("function(ns) return ns.Guide.frame.shown end")(ns) is False
 L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")

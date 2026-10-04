@@ -326,6 +326,73 @@ function Rogue.Guide(s, spec, level)
   return sections
 end
 
+-- The rotation path: one typical fight as icons, for the top of the guide.
+-- Lanes: { label, steps }, step = { spell, id, note (under the icon), count
+-- (×n) } or { text } (a word between icons, like "step behind"). The builder
+-- count is fixed (a real fight can take one more or fewer), and it's split
+-- around Eureka! the way the icon suggests it.
+function Rogue.GuidePath(s, spec)
+  local lanes = {}
+  local function step(spell, note, count)
+    return { spell = spell, id = s.spells[spell] and s.spells[spell].id, note = note, count = count }
+  end
+  local full = fullCP(s)
+  local build = known(s, "Mutilate") and "Mutilate"
+    or (spec == "subtlety" and known(s, "Hemorrhage") and "Hemorrhage") or "Sinister Strike"
+  local per = build == "Mutilate" and 2 or 1
+  local builds = math.ceil(full / per) -- presses to reach full combo points
+
+  -- Opener.
+  local first
+  if dagger(s) and known(s, "Ambush") then first = "Ambush"
+  elseif known(s, "Garrote") then first = "Garrote"
+  elseif known(s, "Cheap Shot") then first = "Cheap Shot" end
+  if first then
+    local steps = {}
+    if known(s, "Premeditation") then steps[#steps + 1] = step("Premeditation", "+2 pts") end
+    steps[#steps + 1] = step(first, first == "Cheap Shot" and "stun" or "behind")
+    lanes[#lanes + 1] = { label = "From stealth", steps = steps }
+  end
+
+  -- One cycle: Slice and Dice, build (Eureka! where its charges reach the
+  -- finisher), Cold Blood, finisher.
+  local steps = {}
+  if known(s, "Slice and Dice") then steps[#steps + 1] = step("Slice and Dice", "1-2 pts") end
+  local finish = known(s, "Eviscerate") and "Eviscerate"
+  local eurekaAt = known(s, "Eureka!") and finish and math.max(0, math.ceil(eurekaCP(s) / per)) or nil
+  local before = eurekaAt and math.min(eurekaAt, builds) or builds
+  if before > 0 then steps[#steps + 1] = step(build, nil, before > 1 and before or nil) end
+  if eurekaAt then
+    steps[#steps + 1] = step("Eureka!", eurekaCP(s) <= 0 and "first" or ("at %d pts"):format(eurekaCP(s)))
+    local after = builds - before
+    if after > 0 then steps[#steps + 1] = step(build, nil, after > 1 and after or nil) end
+  end
+  if known(s, "Cold Blood") and finish then steps[#steps + 1] = step("Cold Blood", "crit") end
+  if finish then steps[#steps + 1] = step(finish, ("at %d"):format(full)) end
+  if known(s, "Slice and Dice") then steps[#steps + 1] = { text = "repeat" } end
+  lanes[#lanes + 1] = { label = "Each cycle", steps = steps }
+
+  -- Elites: Rupture before the Eviscerate cycle.
+  if known(s, "Rupture") and (spec ~= "combat" or talent(s, "Serrated Blades")) then
+    lanes[#lanes + 1] = { label = "Elites", steps = {
+      step(build, nil, builds > 1 and builds or nil), step("Rupture", ("at %d"):format(full)),
+      step(build, nil, builds > 1 and builds or nil), step("Eviscerate", ("at %d"):format(full)) } }
+  end
+  if known(s, "Kick") then
+    lanes[#lanes + 1] = { label = "Mob casts", steps = { step("Kick", "any time") } }
+  end
+  local behind = known(s, "Mutilate") and "Mutilate" or (dagger(s) and known(s, "Backstab") and "Backstab")
+  if known(s, "Gouge") and behind then
+    lanes[#lanes + 1] = { label = "Gouge trick", steps = {
+      step("Gouge", "front"), { text = "step behind" }, step(behind, "4 s window") } }
+  end
+  if dagger(s) and known(s, "Backstab") and build == "Sinister Strike" then
+    lanes[#lanes + 1] = { label = "Behind (groups)", steps = {
+      step("Backstab", "replaces SS", builds > 1 and builds or nil), step("Eviscerate", ("at %d"):format(full)) } }
+  end
+  return lanes
+end
+
 -- The next ability for `spec`, or nil when there's nothing to attack.
 function Rogue.Next(s, spec)
   if not (s.target.exists and s.target.attackable) then return nil end
