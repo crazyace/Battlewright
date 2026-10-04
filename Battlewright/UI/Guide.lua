@@ -38,6 +38,9 @@ local THEME = {
   muted = { 0.72, 0.67, 0.58 },
   tabOn = { 0.32, 0.23, 0.10, 1 },
   tabOff = { 0.11, 0.10, 0.09, 1 },
+  frameEdge = { 0.62, 0.48, 0.22, 1 },
+  tree = { 0.095, 0.083, 0.070, 0.95 },
+  nodeEdge = { 0.22, 0.20, 0.18, 1 },
 }
 
 -- The guide's own type sizes (the game's font objects are tooltip-small).
@@ -139,28 +142,44 @@ local function create()
   f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart", f.StartMoving)
   f:SetScript("OnDragStop", f.StopMovingOrSizing)
-  backdrop(f, WHITE, "Interface\\DialogFrame\\UI-DialogBox-Border", 28, 7)
-  if f.SetBackdropColor then f:SetBackdropColor(unpack(THEME.window)) end
+  flat(f, THEME.window, THEME.frameEdge)
+  -- A second, darker line just inside the gold one: a framed edge without the
+  -- game's heavy stone border.
+  local inner = CreateFrame("Frame", nil, f, "BackdropTemplate")
+  inner:SetPoint("TOPLEFT", 3, -3)
+  inner:SetPoint("BOTTOMRIGHT", -3, 3)
+  backdrop(inner, nil, WHITE, 1, 0)
+  if inner.SetBackdropBorderColor then inner:SetBackdropBorderColor(unpack(THEME.cardEdge)) end
   if UISpecialFrames then tinsert(UISpecialFrames, "BattlewrightGuide") end -- Escape closes it
 
   -- Title band: the name, and your spec and level under it.
   local band = f:CreateTexture(nil, "BACKGROUND")
   band:SetTexture(WHITE)
   band:SetColorTexture(unpack(THEME.band))
-  band:SetPoint("TOPLEFT", 10, -10)
-  band:SetPoint("TOPRIGHT", -10, -10)
-  band:SetHeight(54)
-  line(f, band, "TOP", 0.7)
+  band:SetPoint("TOPLEFT", 4, -4)
+  band:SetPoint("TOPRIGHT", -4, -4)
+  band:SetHeight(58)
   line(f, band, "BOTTOM", 0.5)
   f.title = font(f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"), SIZE.title)
-  f.title:SetPoint("TOP", 0, -17)
+  f.title:SetPoint("TOP", 0, -14)
   f.title:SetText("Battlewright")
   f.title:SetTextColor(unpack(THEME.title))
   f.subtitle = font(f:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.small)
   f.subtitle:SetPoint("TOP", f.title, "BOTTOM", 0, -4)
   f.subtitle:SetTextColor(unpack(THEME.muted))
-  local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-  close:SetPoint("TOPRIGHT", -6, -6)
+  -- Close: a flat square that matches the tabs (Escape closes it too).
+  local close = CreateFrame("Button", nil, f, "BackdropTemplate")
+  close:SetSize(24, 24)
+  close:SetPoint("TOPRIGHT", -12, -12)
+  flat(close, THEME.tabOff, THEME.border)
+  close.text = font(close:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.body)
+  close.text:SetPoint("CENTER", 0, 0)
+  close.text:SetText("x")
+  close.text:SetTextColor(unpack(THEME.muted))
+  close:SetScript("OnEnter", function() close.text:SetTextColor(unpack(THEME.title)) end)
+  close:SetScript("OnLeave", function() close.text:SetTextColor(unpack(THEME.muted)) end)
+  close:SetScript("OnClick", function() f:Hide() end)
+  f.close = close
 
   -- Toolbar under the band: the pages on the left, Solo / Group on the right.
   f.pages = {}
@@ -184,12 +203,47 @@ local function create()
   if page.SetBackdropBorderColor then page:SetBackdropBorderColor(unpack(THEME.border)) end
   page:SetPoint("TOPLEFT", 18, -TOP_BAR)
   page:SetPoint("BOTTOMRIGHT", -18, 18)
-  local sf = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
+  -- Scrolling: the mouse wheel, and a slim bar on the right (no arrow buttons).
+  local sf = CreateFrame("ScrollFrame", nil, page)
   sf:SetPoint("TOPLEFT", 14, -14)
   sf:SetPoint("BOTTOMRIGHT", -30, 14)
   f.content = CreateFrame("Frame", nil, sf)
   f.content:SetSize(INNER, 10)
   sf:SetScrollChild(f.content)
+  local bar = CreateFrame("Slider", nil, page)
+  bar:SetPoint("TOPRIGHT", -10, -14)
+  bar:SetPoint("BOTTOMRIGHT", -10, 14)
+  bar:SetWidth(6)
+  if bar.SetOrientation then bar:SetOrientation("VERTICAL") end
+  local track = bar:CreateTexture(nil, "BACKGROUND")
+  track:SetAllPoints(bar)
+  track:SetColorTexture(1, 1, 1, 0.05)
+  if bar.SetThumbTexture then
+    bar:SetThumbTexture(WHITE)
+    local thumb = bar.GetThumbTexture and bar:GetThumbTexture()
+    if thumb then
+      thumb:SetSize(6, 48)
+      thumb:SetColorTexture(THEME.gold[1], THEME.gold[2], THEME.gold[3], 0.55)
+    end
+  end
+  bar:SetMinMaxValues(0, 0)
+  bar:SetValue(0)
+  bar:Hide() -- until there's something to scroll
+  if bar.SetValueStep then bar:SetValueStep(1) end
+  bar:SetScript("OnValueChanged", function(_, v) sf:SetVerticalScroll(v) end)
+  sf:SetScript("OnScrollRangeChanged", function(_, _, range)
+    range = math.max(0, tonumber(range) or 0)
+    bar:SetMinMaxValues(0, range)
+    if (tonumber(bar:GetValue()) or 0) > range then bar:SetValue(range) end
+    if range > 0 then bar:Show() else bar:Hide() end
+  end)
+  sf:EnableMouseWheel(true)
+  sf:SetScript("OnMouseWheel", function(_, delta)
+    local _, range = bar:GetMinMaxValues()
+    local v = (tonumber(bar:GetValue()) or 0) - delta * 60
+    bar:SetValue(math.max(0, math.min(tonumber(range) or 0, v)))
+  end)
+  f.scroll, f.bar = sf, bar
   -- Path icons and words sit on a layer above the lane cards (a child frame
   -- draws over its parent's own textures).
   f.layer = CreateFrame("Frame", nil, f.content)
@@ -202,6 +256,7 @@ local function create()
   f.builds = {}  -- talents page: build buttons
   f.nodes = {}   -- talents page: tree nodes
   f.trees = {}   -- talents page: a heading per tree
+  f.treeBoxes = {} -- talents page: a box behind each tree
   f.lines = {}   -- cards: { card, icon, text }
   f.lanes = {}   -- path lanes: a card each
   f.cells = {}   -- path icons: { icon, note, count }
@@ -288,6 +343,7 @@ local function hideAll(f)
   for _, b in ipairs(f.builds) do b:Hide() end
   for _, n in ipairs(f.nodes) do n:Hide() end
   for _, h in ipairs(f.trees) do h:Hide() end
+  for _, b in ipairs(f.treeBoxes) do b:Hide() end
 end
 
 local function paintTabs(tabs, current)
@@ -309,6 +365,7 @@ end
 
 function Guide.SetPage(page)
   ns.db.guidePage = page
+  if Guide.frame and Guide.frame.bar then Guide.frame.bar:SetValue(0) end -- a new page starts at the top
   Guide.Refresh()
 end
 
@@ -454,12 +511,12 @@ end
 
 -- Talents page ----------------------------------------------------------------------
 -- The build picker, your tree with the build laid over it, then the plan.
-local NODE, NODE_GAP, TREE_HEAD = 36, 52, 28
+local NODE, NODE_GAP, TREE_HEAD = 36, 50, 30
 local BUILD_BUTTON = 48
 local TREE_NAMES = { "Assassination", "Combat", "Subtlety" }
-local STATUS = { -- border color: the build's talents, and the rest
-  build = { 1.00, 0.80, 0.34 },
-  none = { 0.35, 0.32, 0.28 },
+local STATUS = { -- edge color: the build's talents, and the rest
+  build = { 1.00, 0.80, 0.34, 1 },
+  none = THEME.nodeEdge,
 }
 
 local function buildButton(f, i)
@@ -479,14 +536,28 @@ end
 local function node(f, i)
   return pooled(f.nodes, i, function()
     local n = CreateFrame("Button", nil, f.content, "BackdropTemplate")
-    n:SetSize(NODE + 4, NODE + 4)
-    backdrop(n, WHITE, WHITE, 2, 0)
+    if n.SetFrameLevel and f.content.GetFrameLevel then n:SetFrameLevel((tonumber(f.content:GetFrameLevel()) or 1) + 2) end
+    n:SetSize(NODE + 2, NODE + 2)
+    backdrop(n, WHITE, WHITE, 1, 0)
     n.icon = n:CreateTexture(nil, "ARTWORK")
     n.icon:SetSize(NODE, NODE)
     n.icon:SetPoint("CENTER")
     n.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    n.rank = font(n:CreateFontString(nil, "OVERLAY", "NumberFontNormal"), SIZE.small, "OUTLINE")
-    n.rank:SetPoint("BOTTOMRIGHT", n, "BOTTOMRIGHT", 4, -4)
+    -- A soft gold glow around the build's talents.
+    n.glow = n:CreateTexture(nil, "OVERLAY")
+    n.glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+    if n.glow.SetBlendMode then n.glow:SetBlendMode("ADD") end
+    n.glow:SetVertexColor(1, 0.78, 0.30, 0.55)
+    n.glow:SetPoint("CENTER")
+    n.glow:SetSize(NODE * 1.75, NODE * 1.75)
+    -- The rank in a small dark badge on the corner, like the game's talent window.
+    n.badge = CreateFrame("Frame", nil, n, "BackdropTemplate")
+    n.badge:SetSize(28, 15)
+    n.badge:SetPoint("CENTER", n, "BOTTOMRIGHT", -3, 1)
+    flat(n.badge, { 0.03, 0.025, 0.02, 0.95 }, THEME.nodeEdge)
+    if n.badge.SetFrameLevel and n.GetFrameLevel then n.badge:SetFrameLevel((tonumber(n:GetFrameLevel()) or 1) + 2) end
+    n.rank = font(n.badge:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.small - 1)
+    n.rank:SetPoint("CENTER", 0, 0)
     n:SetScript("OnEnter", function(self)
       if not GameTooltip then return end
       GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -496,6 +567,16 @@ local function node(f, i)
     end)
     n:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
     return n
+  end)
+end
+
+-- A tree's box: a slightly darker panel behind its heading and talents.
+local function treeBox(f, i)
+  return pooled(f.treeBoxes, i, function()
+    local b = panel(f.content, THEME.tree)
+    -- Under the talents, whichever was made first.
+    if b.SetFrameLevel and f.content.GetFrameLevel then b:SetFrameLevel(tonumber(f.content:GetFrameLevel()) or 1) end
+    return b
   end)
 end
 
@@ -541,10 +622,11 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
   -- The tree, from the game's own layout (Traits positions). Without
   -- positions (no Traits tree) only the plan below is shown.
   local list = tg.list or {}
-  local minX, minY = {}, nil
+  local minX, maxX, minY = {}, {}, nil
   for _, e in ipairs(list) do
     if e.posX and e.posY and e.tab then
       minX[e.tab] = math.min(minX[e.tab] or e.posX, e.posX)
+      maxX[e.tab] = math.max(maxX[e.tab] or e.posX, e.posX)
       minY = math.min(minY or e.posY, e.posY)
     end
   end
@@ -553,20 +635,22 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
     -- the build's ranks, the rest greyed at 0. Your own points are in the plan below.
     y = addHeader(tg.build.name .. ": the talent tree", y)
     local target = rotation.BuildRanks(tg.build, #tg.build.order)
-    local colWidth = INNER / 3
+    local colWidth = (INNER - 2 * GAP) / 3
+    local function colOf(e) return math.floor((e.posX - minX[e.tab]) / 600 + 0.5) end
     local want = {}
     for _, e in ipairs(list) do want[e.tab] = (want[e.tab] or 0) + (target[e.name] or 0) end
     for tab = 1, 3 do
       local h = treeHead(f, tab)
       h:ClearAllPoints()
-      h:SetPoint("TOP", f.content, "TOPLEFT", (tab - 0.5) * colWidth, y)
+      h:SetPoint("TOP", f.content, "TOPLEFT", (tab - 1) * (colWidth + GAP) + colWidth / 2, y - PAD)
       h:SetText(("%s  %d"):format(TREE_NAMES[tab], want[tab] or 0))
+      h:SetTextColor(unpack((want[tab] or 0) > 0 and THEME.title or THEME.muted))
       h:Show()
     end
-    local top, rows, n = y - TREE_HEAD, 0, 0
+    local top, rows, n = y - PAD - TREE_HEAD, 0, 0
     for _, e in ipairs(list) do
       if e.posX and e.posY and e.tab then
-        local col = math.floor((e.posX - minX[e.tab]) / 600 + 0.5)
+        local col = colOf(e)
         local row = math.floor((e.posY - minY) / 600 + 0.5)
         rows = math.max(rows, row + 1)
         n = n + 1
@@ -580,21 +664,32 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
         nd.icon:SetDesaturated(not lit)
         nd.icon:SetAlpha(lit and 1 or 0.45)
         if nd.SetBackdropBorderColor then
-          local c = STATUS[status]
-          nd:SetBackdropColor(0.05, 0.04, 0.03, 0.9)
-          nd:SetBackdropBorderColor(c[1], c[2], c[3], 1)
+          nd:SetBackdropColor(0.02, 0.02, 0.02, 1)
+          nd:SetBackdropBorderColor(unpack(STATUS[status]))
         end
+        if lit then nd.glow:Show() else nd.glow:Hide() end
         -- The build's ranks / the talent's max, like the game's talent window.
         nd.rank:SetText(max > 0 and ("%d/%d"):format(goal, max) or "")
         nd.rank:SetTextColor(unpack(lit and { 1, 0.82, 0 } or THEME.muted))
+        if nd.badge.SetBackdropBorderColor then nd.badge:SetBackdropBorderColor(unpack(STATUS[status])) end
         nd.lit = lit
-        local x0 = (e.tab - 1) * colWidth + (colWidth - 4 * NODE_GAP) / 2
+        -- Each tree centered in its box.
+        local span = math.floor((maxX[e.tab] - minX[e.tab]) / 600 + 0.5) * NODE_GAP + NODE + 2
+        local x0 = (e.tab - 1) * (colWidth + GAP) + (colWidth - span) / 2
         nd:ClearAllPoints()
         nd:SetPoint("TOPLEFT", f.content, "TOPLEFT", x0 + col * NODE_GAP, top - row * NODE_GAP)
         nd:Show()
       end
     end
-    y = top - rows * NODE_GAP - 2
+    local bottom = top - rows * NODE_GAP + (NODE_GAP - NODE) - PAD
+    for tab = 1, 3 do
+      local box = treeBox(f, tab)
+      box:ClearAllPoints()
+      box:SetPoint("TOPLEFT", f.content, "TOPLEFT", (tab - 1) * (colWidth + GAP), y)
+      box:SetSize(colWidth, y - bottom)
+      box:Show()
+    end
+    y = bottom - GAP
     y = addCard("The tree as this build fills it by level 30: its talents lit with their ranks, the rest "
       .. "greyed. Your own points and what to take next are in the plan below. Hover a talent for its text.", y)
   end
