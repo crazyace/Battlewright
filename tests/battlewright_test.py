@@ -37,6 +37,7 @@ function CreateFrame()
   f.SetValue = function(self, v) self.value = v end
   f.SetShown = function(self, v) self.shown = v end
   f.IsShown = function(self) return self.shown == true end
+  f.SetPoint = function(self, ...) self.point = { ... } end
   return f
 end
 function fire(event, ...)
@@ -342,6 +343,21 @@ nodes = dict(nodes.items())
 assert nodes["Malice"] == "done 5/5" and nodes["Improved Gouge"] == "off 2", nodes
 assert nodes["Lethality"] == "todo 0/5" and nodes["Mutilate"] == "todo 0/1", nodes
 assert nodes["Puncturing Wounds"] == "none " and nodes["Camouflage"] == "none ", nodes
+# Layout: the build buttons, the tree and the cards under it don't overlap
+# (in game the cards were drawn over the tree).
+lay = L.eval("""function(ns) local f = ns.Guide.frame
+  local lowestNode, buttonBottom, legendTop = 0, 0, nil
+  for _, n in ipairs(f.nodes) do if n.shown then lowestNode = math.min(lowestNode, n.point[5] - 36) end end
+  buttonBottom = f.builds[1].point[5] - 38
+  local topNode
+  for _, n in ipairs(f.nodes) do if n.shown then topNode = math.max(topNode or -math.huge, n.point[5]) end end
+  for _, c in ipairs(f.lines) do
+    if c.text.text and c.text.text:find("^Green: done") then legendTop = c.card.point[5] end
+  end
+  return lowestNode, buttonBottom, legendTop, topNode end""")(ns)
+lowest, buttons, legend, top_node = lay
+assert legend is not None and legend <= lowest - 2, lay
+assert top_node < buttons, lay
 L.eval("function(ns) ns.Talents.Get = ns._sassy end")(ns)
 L.eval("function(ns) ns.Guide.SetBuild(nil) ns.Guide.SetPage('rotation') end")(ns)
 

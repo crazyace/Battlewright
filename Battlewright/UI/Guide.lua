@@ -425,7 +425,9 @@ function Guide.Refresh()
   if not sections then
     addCard(specOrWhy)
   elseif Guide.page == "talents" then
-    y = Guide.DrawTalents(f, talents, y, addHeader, addCard)
+    -- One running position: the page's own drawing and these helpers share it.
+    y = Guide.DrawTalents(f, talents, y, function(text, at) y = at; addHeader(text); return y end,
+      function(text, at, spell, id) y = at; addCard(text, spell, id); return y end)
   else
     if path and #path > 0 then
       addHeader("At a glance")
@@ -498,20 +500,21 @@ local function treeHead(f, i)
   end)
 end
 
--- Draws the talents page from `y` down; returns the y below it.
+-- Draws the talents page from `y` down; returns the y below it. addHeader and
+-- addCard draw at the y they're given and return the y below what they drew.
 function Guide.DrawTalents(f, tg, y, addHeader, addCard)
-  if not tg then addCard("No talent builds for your class yet."); return y end
+  if not tg then return addCard("No talent builds for your class yet.", y) end
   local rotation = ns.Rotations[select(2, UnitClass("player"))]
 
   -- Build picker: the three builds, the best fit marked, the shown one lit.
-  addHeader("Pick a build")
+  y = addHeader("Pick a build", y)
   local width = (INNER - 8) / #BUILD_ORDER
   for i, key in ipairs(BUILD_ORDER) do
     local b = buildButton(f, i)
     local build = rotation.BUILDS[key]
     b:ClearAllPoints()
     b:SetPoint("TOPLEFT", f.content, "TOPLEFT", (i - 1) * (width + 4), y)
-    b:SetSize(width, 36)
+    b:SetSize(width, 38)
     b.name:SetText(build.name)
     b.tag:SetText(key == tg.picks[1][1] and "best fit for you" or "")
     local on = key == tg.key
@@ -523,7 +526,7 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
     b:SetScript("OnClick", function() Guide.SetBuild(key) end)
     b:Show()
   end
-  y = y - 36 - 4
+  y = y - 38 - 4
 
   -- The tree, from the game's own layout (Traits positions). Without
   -- positions (no Traits tree) only the plan below is shown.
@@ -536,7 +539,7 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
     end
   end
   if minY then
-    addHeader(tg.build.name .. " on your tree")
+    y = addHeader(tg.build.name .. " on your tree", y)
     local target = rotation.BuildRanks(tg.build, 21)
     local nextName = tg.plan and tg.plan.next and tg.plan.next.name
     local colWidth = INNER / 3
@@ -549,7 +552,8 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
       local h = treeHead(f, tab)
       h:ClearAllPoints()
       h:SetPoint("TOP", f.content, "TOPLEFT", (tab - 0.5) * colWidth, y)
-      h:SetText(("%s  %d / %d"):format(TREE_NAMES[tab], have[tab] or 0, want[tab] or 0))
+      h:SetText((want[tab] or 0) > 0 and ("%s  %d / %d"):format(TREE_NAMES[tab], have[tab] or 0, want[tab])
+        or ("%s  %d"):format(TREE_NAMES[tab], have[tab] or 0))
       h:Show()
     end
     local top, rows, n = y - TREE_HEAD, 0, 0
@@ -580,12 +584,12 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
       end
     end
     y = top - rows * NODE_GAP - 2
-    addCard("Green: done.  Gold: still to take.  Bright: your next point.  Red: not in this build.  "
-      .. "Numbers: your rank / the build's. Hover a talent for its text.")
+    y = addCard("Green: done.  Gold: still to take.  Bright: your next point.  Red: not in this build.  "
+      .. "Numbers: your rank / the build's. Hover a talent for its text.", y)
   end
 
-  addHeader("The plan")
-  for _, r in ipairs(tg.rows) do addCard(r.text, r.spell, r.id) end
+  y = addHeader("The plan", y)
+  for _, r in ipairs(tg.rows) do y = addCard(r.text, y, r.spell, r.id) end
   return y
 end
 
