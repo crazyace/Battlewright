@@ -14,4 +14,7 @@ read_globals = {
   "date", "tinsert", "UISpecialFrames", "ChatFontNormal", "UnitGUID",
   "C_ClassTalents", "C_Traits", "C_Item", "GetNumTalentTabs", "GetNumTalents", "GetTalentInfo",
   "InCombatLockdown", "GetInventoryItemID", "UnitCastingInfo", "UnitChannelInfo",
+  "C_SpellBook", "GetNumSpellTabs", "GetSpellTabInfo", "GetSpellBookItemInfo", "GetSpellBaseCooldown",
+  "GetNumTrainerServices", "GetTrainerServiceInfo", "GetTrainerServiceLevelReq", "GetTrainerServiceDescription",
+  "UnitLevel", "UnitName",
 }

@@ -294,6 +294,146 @@ function P.export()
 end
 
 
+-- Spell book -----------------------------------------------------------------------
+-- What every talent and ability actually says on Forever, for theorycrafting:
+-- /bwp book saves each talent's text at every rank (with its row, spec,
+-- prerequisites and point requirement), every spell in your spell book (cost,
+-- cast time, range, cooldown, rank, text), and, if a trainer window is open,
+-- every service it lists with its text. Out of combat only. Spell text loads
+-- on demand, so a second pass a moment later fills what came back empty.
+local function call(fn, ...)
+  if not fn then return nil end
+  local res = pack(pcall(fn, ...))
+  if not res[1] then return nil end
+  return sanitize(res[2]), res
+end
+
+local function describe(spellID)
+  local desc = spellID and C_Spell and call(C_Spell.GetSpellDescription, spellID)
+  return type(desc) == "string" and desc ~= "" and desc or nil
+end
+
+local function bookTalents(out)
+  local configID = C_ClassTalents and call(C_ClassTalents.GetActiveConfigID)
+  local config = configID and C_Traits and call(C_Traits.GetConfigInfo, configID)
+  if type(config) ~= "table" or type(config.treeIDs) ~= "table" then out.error = "no talent tree"; return end
+  out.conditions = {}
+  for _, treeID in ipairs(config.treeIDs) do
+    for _, nodeID in ipairs(call(C_Traits.GetTreeNodes, treeID) or {}) do
+      local node = call(C_Traits.GetNodeInfo, configID, nodeID)
+      if type(node) == "table" then
+        local rec = { nodeID = nodeID, maxRanks = node.maxRanks, rank = node.activeRank or node.currentRank,
+          posX = node.posX, posY = node.posY, groupIDs = node.groupIDs, conditionIDs = node.conditionIDs,
+          edges = {}, entries = {} }
+        for _, e in ipairs(type(node.visibleEdges) == "table" and node.visibleEdges or {}) do
+          rec.edges[#rec.edges + 1] = e.targetNode
+        end
+        for _, entryID in ipairs(type(node.entryIDs) == "table" and node.entryIDs or {}) do
+          local entry = call(C_Traits.GetEntryInfo, configID, entryID)
+          local def = type(entry) == "table" and entry.definitionID and call(C_Traits.GetDefinitionInfo, entry.definitionID)
+          local spellID = type(def) == "table" and def.spellID or nil
+          local e = { entryID = entryID, spellID = spellID, name = spellID and C_Spell and call(C_Spell.GetSpellName, spellID),
+            ranks = {} }
+          for r = 1, math.max(1, tonumber(node.maxRanks) or 1) do
+            local text = C_Traits.GetTraitDescription and call(C_Traits.GetTraitDescription, entryID, r)
+            e.ranks[r] = type(text) == "string" and text ~= "" and text or nil
+          end
+          e.spellText = describe(spellID)
+          rec.entries[#rec.entries + 1] = e
+        end
+        for _, condID in ipairs(type(node.conditionIDs) == "table" and node.conditionIDs or {}) do
+          if out.conditions[condID] == nil then
+            out.conditions[condID] = call(C_Traits.GetConditionInfo, configID, condID) or false
+          end
+        end
+        out.nodes[#out.nodes + 1] = rec
+      end
+    end
+  end
+end
+
+-- Spell book: the modern C_SpellBook API, else the older per-tab one.
+local function bookSpells(out)
+  local list = {}
+  local SB = C_SpellBook
+  if SB and SB.GetNumSpellBookSkillLines then
+    local bank = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player or 0
+    for line = 1, call(SB.GetNumSpellBookSkillLines) or 0 do
+      local info = call(SB.GetSpellBookSkillLineInfo, line)
+      if type(info) == "table" then
+        for i = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
+          local item = call(SB.GetSpellBookItemInfo, i, bank)
+          if type(item) == "table" and item.spellID then
+            list[#list + 1] = { tab = info.name, id = item.spellID, passive = item.isPassive }
+          end
+        end
+      end
+    end
+  elseif GetNumSpellTabs then
+    for tab = 1, GetNumSpellTabs() do
+      local name, _, offset, count = GetSpellTabInfo(tab)
+      for i = offset + 1, offset + count do
+        local _, id = GetSpellBookItemInfo(i, "spell")
+        if id then list[#list + 1] = { tab = name, id = id } end
+      end
+    end
+  end
+  for _, s in ipairs(list) do
+    local info = C_Spell and call(C_Spell.GetSpellInfo, s.id)
+    if type(info) == "table" then
+      s.name, s.castTime, s.minRange, s.maxRange = info.name, info.castTime, info.minRange, info.maxRange
+    end
+    s.rank = C_Spell and call(C_Spell.GetSpellSubtext, s.id)
+    s.cost = C_Spell and call(C_Spell.GetSpellPowerCost, s.id)
+    s.cooldownMs = GetSpellBaseCooldown and call(GetSpellBaseCooldown, s.id)
+    s.text = describe(s.id)
+    out.spells[#out.spells + 1] = s
+  end
+end
+
+local function bookTrainer(out)
+  local n = GetNumTrainerServices and call(GetNumTrainerServices) or 0
+  if type(n) ~= "number" or n == 0 then return end
+  out.trainer = { name = UnitName and call(UnitName, "npc"), services = {} }
+  for i = 1, n do
+    local _, res = call(GetTrainerServiceInfo, i)
+    out.trainer.services[i] = {
+      info = res and sanitize({ unpack(res, 2, res.n) }), -- name, rank/subtext, category...
+      level = GetTrainerServiceLevelReq and call(GetTrainerServiceLevelReq, i),
+      text = GetTrainerServiceDescription and call(GetTrainerServiceDescription, i) or nil,
+    }
+  end
+end
+
+local function bookPass(out)
+  out.nodes, out.spells = {}, {}
+  bookTalents(out)
+  bookSpells(out)
+  bookTrainer(out)
+  local missing = 0
+  for _, s in ipairs(out.spells) do if not s.text then missing = missing + 1 end end
+  for _, n in ipairs(out.nodes) do
+    for _, e in ipairs(n.entries) do if not (e.ranks[1] or e.spellText) then missing = missing + 1 end end
+  end
+  return missing
+end
+
+function P.book()
+  if InCombatLockdown and InCombatLockdown() then return say("not in combat: try again after the fight") end
+  local d = db()
+  local out = { at = now(), character = UnitName and UnitName("player"), level = UnitLevel and UnitLevel("player") }
+  d.book = out
+  bookPass(out) -- asks for every spell's text; some arrive a moment later
+  local function second()
+    local missing = bookPass(out)
+    say("book: %d talents, %d spells%s%s, %d without text. Now /bwp export",
+      #out.nodes, #out.spells, out.trainer and ", " or "",
+      out.trainer and (#out.trainer.services .. " trainer services") or "", missing)
+  end
+  if C_Timer and C_Timer.After then C_Timer.After(2, second) else second() end
+  say("reading talents and spells...")
+end
+
 -- Wiring ----------------------------------------------------------------------------
 local events = CreateFrame("Frame")
 for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "ADDON_ACTION_FORBIDDEN", "ADDON_ACTION_BLOCKED" }) do
@@ -336,6 +476,7 @@ end)
 
 local COMMANDS = {
   combat = P.combat,
+  book = P.book,
   export = P.export,
   clear = function() BattlewrightProbeDB = nil; say("cleared") end,
 }
@@ -348,6 +489,6 @@ SlashCmdList.BATTLEWRIGHTPROBE = function(msg)
     local ok, err = pcall(fn)
     if not ok then say("|cffff5050error:|r %s", tostring(err)) end
   else
-    say("usage: /bwp combat (record your next fight) | export | clear")
+    say("usage: /bwp combat (record your next fight) | book (all talent and spell text) | export | clear")
   end
 end

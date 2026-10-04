@@ -41,6 +41,9 @@ it's built from what you have:
 
 ## Rogue priorities
 
+The theory behind these (talents, builds, abilities by level, weapons) is in
+[docs/ROGUE.md](docs/ROGUE.md).
+
 1. In stealth: Premeditation first (as a cooldown) if talented, then Ambush (with a
    dagger, Assassination/Subtlety), Garrote or Cheap Shot (Combat).
 2. Slice and Dice when it's down or about to fall off (2 s). In combat its timer is
@@ -88,6 +91,10 @@ usability **during a fight**, or does the game hide them (`issecretvalue`)?
 4. `python tools/probe_summary.py BattlewrightProbe.lua` prints the verdict.
 
 The last 5 recordings are kept; `/bwp clear` empties them.
+
+`/bwp book` (out of combat) saves the text of every talent at every rank, every spell
+in your spell book, and, with a trainer window open, every service the trainer lists.
+Send it with `/bwp export`; it feeds docs/ROGUE.md.
 
 ## Layout
 

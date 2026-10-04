@@ -34,13 +34,14 @@ Rogue.USED = {
   ["Riposte"] = "used after a parry",
   ["Blade Flurry"] = "suggested as a cooldown",
   ["Adrenaline Rush"] = "suggested as a cooldown",
+  ["Improved Gouge"] = "the Backstab window after Gouge lasts 0.5 s longer per rank",
   ["Improved Kick"] = "Kick is suggested when the target casts something interruptible",
 }
 -- Classic talents that only add damage, crit, energy or avoidance: nothing to press differently.
 Rogue.PASSIVE = {
   "Malice", "Remorseless Attacks", "Ruthlessness", "Murder", "Relentless Strikes", "Improved Expose Armor",
   "Lethality", "Vile Poisons", "Improved Poisons", "Vigor", "Improved Kidney Shot", "Seal Fate",
-  "Improved Gouge", "Improved Eviscerate", "Improved Sinister Strike", "Lightning Reflexes", "Deflection",
+  "Improved Eviscerate", "Improved Sinister Strike", "Lightning Reflexes", "Deflection",
   "Precision", "Endurance", "Improved Sprint", "Dual Wield Specialization", "Weapon Expertise",
   "Aggression", "Hack and Slash", "Camouflage", "Master of Deception", "Opportunity", "Setup", "Elusiveness",
   "Initiative", "Improved Distract", "Heightened Senses", "Dirty Deeds",
@@ -154,7 +155,9 @@ local function cooldown(s, spec)
     if ready(s, "Adrenaline Rush") then return { spell = "Adrenaline Rush", why = "ready" } end
     if ready(s, "Blade Flurry") then return { spell = "Blade Flurry", why = "ready (best with two targets)" } end
   elseif spec == "assassination" then
-    if s.cp >= 4 and ready(s, "Cold Blood") then return { spell = "Cold Blood", why = "before your finisher" } end
+    -- Cold Blood on a full-combo-point Eviscerate (4 with Mutilate, else 5).
+    local full = known(s, "Mutilate") and 4 or 5
+    if s.cp >= full and ready(s, "Cold Blood") then return { spell = "Cold Blood", why = "before your finisher" } end
   end
   if ready(s, "Preparation") and known(s, "Vanish") and not ready(s, "Vanish") and not ready(s, "Evasion") then
     return { spell = "Preparation", why = "resets Vanish, Evasion and Sprint" }

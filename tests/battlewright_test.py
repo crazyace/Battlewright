@@ -282,6 +282,16 @@ L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("GAME.sndAura = nil; GAME.blocked = false; GAME.energySecret = false; GAME.guid = nil; issecretvalue = nil")
 L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
 
+# Cold Blood waits for full combo points: 5 without Mutilate.
+L.globals().SlashCmdList.BATTLEWRIGHT("spec assassination")
+cb = lambda: L.eval("function(ns) local v = ns.Display.Compute() return v.cooldown and v.cooldown.spell end")(ns)
+show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Cold Blood": 0}, cp=4, buffs=[["Slice and Dice", 130]])
+assert cb() is None
+show(cp=5)
+assert cb() == "Cold Blood", cb()
+L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
+L.execute("GAME.cp = 0; GAME.buffs = {}")
+
 # Gouge sets up Backstab (dagger): step behind it. Any hit ends the Gouge.
 L.execute("GAME.blocked = true; GAME.mainHand = 15; GAME.guid = 'Creature-G'"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
 gk = {"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Backstab": 60, "Gouge": 45}
@@ -335,6 +345,31 @@ assert "SECRET: aura expirationTime" in out, out
 # The game blocking a call: the probe records which function it was.
 L.globals().fire("ADDON_ACTION_FORBIDDEN", "BattlewrightProbe", "SomeProtectedFunction()")
 assert L.eval("function() return BattlewrightProbeDB.blocked['SomeProtectedFunction()'].count end")() == 1
+# /bwp book: every talent's text at every rank, and the spell book.
+L.execute("""
+C_ClassTalents = { GetActiveConfigID = function() return 7 end }
+C_Traits = {
+  GetConfigInfo = function() return { treeIDs = { 1111 } } end,
+  GetTreeNodes = function() return { 105712 } end,
+  GetNodeInfo = function() return { maxRanks = 2, activeRank = 1, posY = 6330, entryIDs = { 50 }, conditionIDs = { 43439 },
+    visibleEdges = {}, groupIDs = { 11574 } } end,
+  GetEntryInfo = function() return { definitionID = 9 } end,
+  GetDefinitionInfo = function() return { spellID = 1310703 } end,
+  GetTraitDescription = function(_, rank) return "Venom rank " .. rank end,
+  GetConditionInfo = function() return { spentAmountRequired = 30 } end,
+}
+C_Spell.GetSpellName = function() return "Venom" end
+C_Spell.GetSpellDescription = function() return "" end
+C_Spell.GetSpellSubtext = function() return "Rank 4" end
+function GetNumSpellTabs() return 1 end
+function GetSpellTabInfo() return "Assassination", nil, 0, 1 end
+function GetSpellBookItemInfo() return "SPELL", 1752 end
+function GetNumTrainerServices() return 0 end
+""")
+L.globals().SlashCmdList.BATTLEWRIGHTPROBE("book")
+book = L.eval("""function() local b = BattlewrightProbeDB.book local n = b.nodes[1]
+  return n.entries[1].name, n.entries[1].ranks[2], b.conditions[43439].spentAmountRequired, b.spells[1].id, b.spells[1].rank end""")()
+assert tuple(book) == ("Venom", "Venom rank 2", 30, 1752, "Rank 4"), tuple(book)
 L.globals().SlashCmdList.BATTLEWRIGHTPROBE("export")
 export = Path(tempfile.mkdtemp()) / "export.json"
 export.write_text(L.globals().EXPORTTEXT)
