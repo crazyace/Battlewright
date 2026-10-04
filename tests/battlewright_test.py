@@ -419,8 +419,8 @@ assert line == "In this build: 5 of 5 ranks", line
 # (in game the cards were drawn over the tree).
 lay = L.eval("""function(ns) local f = ns.Guide.frame
   local lowestNode, buttonBottom, legendTop = 0, 0, nil
-  for _, n in ipairs(f.nodes) do if n.shown then lowestNode = math.min(lowestNode, n.point[5] - 36) end end
-  buttonBottom = f.builds[1].point[5] - 38
+  for _, n in ipairs(f.nodes) do if n.shown then lowestNode = math.min(lowestNode, n.point[5] - 40) end end
+  buttonBottom = f.builds[1].point[5] - 48
   local topNode
   for _, n in ipairs(f.nodes) do if n.shown then topNode = math.max(topNode or -math.huge, n.point[5]) end end
   for _, c in ipairs(f.lines) do
