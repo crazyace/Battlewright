@@ -1,7 +1,13 @@
 -- Battlewright: the on-screen icon. A big icon for the next ability (dimmed,
 -- with a countdown, while you wait for energy), a small one for a cooldown
--- worth using, and a line saying why. Shown in combat (or, if you choose, with
--- an attackable target); /bw unlock to move it.
+-- worth using, an energy bar, and a line saying why. Shown in combat (or, if
+-- you choose, with an attackable target); /bw unlock to move it.
+--
+-- Hidden ("secret") values: Forever hides energy and whether the target's cast
+-- can be interrupted from addon code in combat. They can still be *shown*: the
+-- game's widgets accept them (StatusBar:SetValue, Region:SetAlphaFromBoolean)
+-- and draw them without the addon ever reading them. The energy bar and the
+-- Kick icon's visibility work that way (the technique EllesmereUI's cast bars use).
 local _, ns = ...
 
 local Display = {}
@@ -44,6 +50,14 @@ function Display.Create()
   f.cd.icon = f.cd:CreateTexture(nil, "ARTWORK")
   f.cd.icon:SetAllPoints()
   f.cd.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+  -- Energy, drawn by the game even while it's secret to us.
+  f.energy = CreateFrame("StatusBar", nil, f)
+  f.energy:SetSize(SIZE, 5)
+  f.energy:SetPoint("TOP", f, "BOTTOM", 0, -1)
+  if f.energy.SetStatusBarTexture then f.energy:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar") end
+  if f.energy.SetStatusBarColor then f.energy:SetStatusBarColor(1, 0.9, 0.2) end
+  f.why:ClearAllPoints()
+  f.why:SetPoint("TOP", f.energy, "BOTTOM", 0, -2)
   Display.frame = f
   Display.Place()
   local elapsed = 0
@@ -75,6 +89,28 @@ function Display.Compute()
   return { main = main, cooldown = cd, spec = spec, state = s }
 end
 
+-- Energy bar: max and current go straight to the widget, secret or not.
+function Display.UpdateEnergy()
+  local bar = Display.frame and Display.frame.energy
+  if not bar then return end
+  local energyType = Enum and Enum.PowerType and Enum.PowerType.Energy or 3
+  local ok = pcall(function()
+    bar:SetMinMaxValues(0, UnitPowerMax("player", energyType))
+    bar:SetValue(UnitPower("player", energyType))
+  end)
+  bar:SetShown(ok)
+end
+
+-- Kick: shown unless the game says the cast can't be interrupted. That flag is
+-- secret in combat, so the game applies it: alpha 0 when true, 1 when false.
+local function kickVisibility(cd, icon)
+  if cd.notInterruptible == nil or not icon.SetAlphaFromBoolean then
+    icon:SetAlpha(1)
+    return
+  end
+  if not pcall(icon.SetAlphaFromBoolean, icon, cd.notInterruptible, 0, 1) then icon:SetAlpha(1) end
+end
+
 function Display.Update()
   local f = Display.frame
   if not f then return end
@@ -85,6 +121,7 @@ function Display.Update()
     return
   end
   f:SetAlpha(1)
+  Display.UpdateEnergy()
   local ok, view = pcall(Display.Compute)
   if not ok then view = { message = "error: " .. tostring(view) } end
   Display.view = view -- read by tests
@@ -107,6 +144,7 @@ function Display.Update()
     f.cd.icon:SetTexture(texture(view.cooldown.spell))
     -- An interrupt is urgent: make it as big as the main icon.
     f.cd:SetSize(view.cooldown.urgent and SIZE or SMALL, view.cooldown.urgent and SIZE or SMALL)
+    kickVisibility(view.cooldown, f.cd)
     f.cd:Show()
   else
     f.cd:Hide()

@@ -128,8 +128,12 @@ function State.Casting()
       local r = { pcall(fn, "target") }
       if r[1] and r[2] ~= nil then
         local notInterruptible = fn == UnitCastingInfo and r[9] or r[8]
-        if secret(notInterruptible) then return { interruptible = nil } end
-        return { interruptible = notInterruptible ~= true }
+        -- raw: the flag as the game gave it, maybe secret. Addon code can't read
+        -- a secret one, but can hand it to a widget (SetAlphaFromBoolean), which
+        -- the game then draws: that's how the Kick icon hides for casts that
+        -- can't be interrupted.
+        if secret(notInterruptible) then return { interruptible = nil, raw = notInterruptible } end
+        return { interruptible = notInterruptible ~= true, raw = notInterruptible == true }
       end
     end
   end

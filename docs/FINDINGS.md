@@ -62,6 +62,23 @@ Saved in `data/probe/2026-10-03-combat-3.json`.
   interrupted.
 - Everything else as in round 2.
 
+## Showing what we can't read (2026-10-04)
+
+EllesmereUI (supports Forever; all rights reserved, studied only) shows a Kick-ready
+tick on cast bars and a shield on uninterruptible casts without reading either value.
+Secret values can't be compared or used in addon code, but the game's widgets accept
+them and draw them:
+
+- `StatusBar:SetMinMaxValues` / `SetValue` take secret numbers (energy, a duration);
+- `Region:SetAlphaFromBoolean(flag, alphaIfTrue, alphaIfFalse)` takes a secret boolean
+  (e.g. `notInterruptible` from `UnitCastingInfo`);
+- `C_Spell.GetSpellCooldownDuration` / `UnitCastingDuration` return duration objects,
+  and `C_CurveUtil.EvaluateColorValueFromBoolean` turns a secret boolean into a color.
+
+Battlewright now uses the first two: an energy bar under the icon fed straight from
+`UnitPower`, and the Kick icon given `notInterruptible` through `SetAlphaFromBoolean`,
+so the game hides it for casts that can't be interrupted.
+
 ## Next round
 
 The probe now logs which spells you cast in each recorded fight (`you cast: ...` in

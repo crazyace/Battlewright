@@ -16,7 +16,9 @@ your gear; Battlewright your fight).
   countdown out of combat; Forever hides energy in combat).
 - A small icon beside it: a cooldown worth using now (Adrenaline Rush, Blade Flurry,
   Cold Blood).
-- A line under it saying why ("Slice and Dice is down", "full combo points").
+- An energy bar under it (the game draws it even though addons can't read energy in
+  combat).
+- A line under that saying why ("Slice and Dice is down", "full combo points").
 
 It shows in combat (and, with `/bw target`, when you target an enemy). If the game hides
 the combat data it needs, it says so instead of guessing.
@@ -49,8 +51,8 @@ it's built from what you have:
    25% (when its health is readable).
 5. Build: Riposte after a parry; Mutilate (Assassination), Ghostly Strike or
    Hemorrhage (Subtlety), Backstab (dagger + `/bw behind`), else Sinister Strike.
-6. Cooldowns (small icon): Kick when the target casts something interruptible (shown
-   big), Adrenaline Rush and Blade Flurry (Combat), Cold Blood before a finisher
+6. Cooldowns (small icon): Kick when the target casts (shown big; the game hides it
+   for casts that can't be interrupted), Adrenaline Rush and Blade Flurry (Combat), Cold Blood before a finisher
    (Assassination), Preparation once Vanish and Evasion are used.
 
 Out of melee range, the icon turns red and says so. Rupture's timer is kept per target.

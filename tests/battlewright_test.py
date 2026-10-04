@@ -33,6 +33,9 @@ function CreateFrame()
   f.SetAlpha = function(self, a) self.alpha = a end
   f.GetPoint = function() return "CENTER", nil, "CENTER", 0, -160 end
   f.SetText = function(self, t) self.text = t; EXPORTTEXT = t end
+  f.SetAlphaFromBoolean = function(self, v, a, b) self.fromBoolean = { v, a, b } end
+  f.SetValue = function(self, v) self.value = v end
+  f.SetShown = function(self, v) self.shown = v end
   return f
 end
 function fire(event, ...)
@@ -244,8 +247,15 @@ assert tuple(full())[1] is None
 # In combat the cast's details are secret, but a cast is still going on: Kick.
 L.execute("function UnitCastingInfo() if GAME.casting then return SECRET, SECRET, SECRET, SECRET, SECRET, SECRET, SECRET, SECRET, SECRET end end; GAME.casting = 'secret'")
 assert tuple(full())[1] == "Kick", tuple(full())
+# The Kick icon hands the secret "not interruptible" flag to the widget (alpha 0
+# when it can't be interrupted), and the energy bar is fed secret energy as is.
+kick = L.eval("""function(ns) GAME.combat = true ns.Display.Update() local f = ns.Display.frame
+  local fb = rawget(f.cd, "fromBoolean") or {}
+  return fb[1] == SECRET, fb[2], fb[3], rawget(f.energy, "value") == SECRET end""")(ns)
+assert tuple(kick) == (True, 0, 1, True), tuple(kick)
 L.execute("GAME.casting = nil; GAME.inRange = false")
 # Out of melee range: the icon says so.
+
 assert tuple(full()) == ("Sinister Strike", None, True), tuple(full())
 L.execute("GAME.inRange = nil")
 # Rupture is tracked per target: casting it on mob A doesn't count for mob B.
