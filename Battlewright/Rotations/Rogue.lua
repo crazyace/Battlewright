@@ -34,13 +34,14 @@ Rogue.USED = {
   ["Riposte"] = "used after a parry",
   ["Blade Flurry"] = "suggested as a cooldown",
   ["Adrenaline Rush"] = "suggested as a cooldown",
+  ["Improved Kick"] = "Kick is suggested when the target casts something interruptible",
 }
 -- Classic talents that only add damage, crit, energy or avoidance: nothing to press differently.
 Rogue.PASSIVE = {
   "Malice", "Remorseless Attacks", "Ruthlessness", "Murder", "Relentless Strikes", "Improved Expose Armor",
   "Lethality", "Vile Poisons", "Improved Poisons", "Vigor", "Improved Kidney Shot", "Seal Fate",
   "Improved Gouge", "Improved Eviscerate", "Improved Sinister Strike", "Lightning Reflexes", "Deflection",
-  "Precision", "Endurance", "Improved Sprint", "Improved Kick", "Dual Wield Specialization", "Weapon Expertise",
+  "Precision", "Endurance", "Improved Sprint", "Dual Wield Specialization", "Weapon Expertise",
   "Aggression", "Hack and Slash", "Camouflage", "Master of Deception", "Opportunity", "Setup", "Elusiveness",
   "Initiative", "Improved Distract", "Heightened Senses", "Dirty Deeds",
 }
@@ -127,6 +128,10 @@ local function builder(s, spec)
 end
 
 local function cooldown(s, spec)
+  local cast = s.target.casting
+  if cast and cast.interruptible and ready(s, "Kick") then
+    return { spell = "Kick", why = "interrupt the cast", urgent = true }
+  end
   if s.stealthed and s.cp == 0 and ready(s, "Premeditation") then
     return { spell = "Premeditation", why = "before your opener" }
   end
@@ -146,5 +151,6 @@ end
 function Rogue.Next(s, spec)
   if not (s.target.exists and s.target.attackable) then return nil end
   local main = (s.stealthed and opener(s, spec)) or finisher(s, spec) or builder(s, spec)
+  if main and s.inRange == false then main.outOfRange = true end
   return main, cooldown(s, spec)
 end

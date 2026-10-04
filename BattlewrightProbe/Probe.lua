@@ -65,6 +65,12 @@ local function note(out, key, fn, ...)
   for i = 2, res.n do if isSecret(res[i]) then anySecret = true end end
   if anySecret then rec.secret = rec.secret + 1 else rec.readable = rec.readable + 1 end
   if rec.example == nil and not anySecret then rec.example = sanitize({ unpack(res, 2, math.min(res.n, 6)) }) end
+  -- Readable but nothing found (nil) is different from found: count both, keep
+  -- the first real answer (e.g. the Slice and Dice aura while it's up).
+  if not anySecret and res[2] ~= nil then
+    rec.found = (rec.found or 0) + 1
+    if rec.foundExample == nil then rec.foundExample = sanitize({ unpack(res, 2, math.min(res.n, 6)) }) end
+  end
   return not anySecret and res[2] or nil, res
 end
 

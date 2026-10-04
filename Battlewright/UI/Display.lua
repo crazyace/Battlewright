@@ -92,8 +92,11 @@ function Display.Update()
   if m then
     f.icon:SetTexture(texture(m.spell))
     f.icon:SetDesaturated(m.short == true)
+    if f.icon.SetVertexColor then
+      if m.outOfRange then f.icon:SetVertexColor(1, 0.35, 0.35) else f.icon:SetVertexColor(1, 1, 1) end
+    end
     f.wait:SetText(m.wait and m.wait > 0 and ("%.1f"):format(m.wait) or "")
-    f.why:SetText(m.spell .. ": " .. m.why)
+    f.why:SetText(m.outOfRange and (m.spell .. ": out of range") or (m.spell .. ": " .. m.why))
   else
     f.icon:SetTexture(QUESTION)
     f.icon:SetDesaturated(true)
@@ -102,6 +105,8 @@ function Display.Update()
   end
   if view.cooldown then
     f.cd.icon:SetTexture(texture(view.cooldown.spell))
+    -- An interrupt is urgent: make it as big as the main icon.
+    f.cd:SetSize(view.cooldown.urgent and SIZE or SMALL, view.cooldown.urgent and SIZE or SMALL)
     f.cd:Show()
   else
     f.cd:Hide()

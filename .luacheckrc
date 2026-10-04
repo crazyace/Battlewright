@@ -13,5 +13,5 @@ read_globals = {
   "UnitCanAttack", "UnitExists", "UnitAffectingCombat", "IsStealthed", "GetTime", "GetPowerRegen",
   "date", "tinsert", "UISpecialFrames", "ChatFontNormal", "UnitGUID",
   "C_ClassTalents", "C_Traits", "C_Item", "GetNumTalentTabs", "GetNumTalents", "GetTalentInfo",
-  "InCombatLockdown", "GetInventoryItemID",
+  "InCombatLockdown", "GetInventoryItemID", "UnitCastingInfo", "UnitChannelInfo",
 }

@@ -49,8 +49,11 @@ it's built from what you have:
    25% (when its health is readable).
 5. Build: Riposte after a parry; Mutilate (Assassination), Ghostly Strike or
    Hemorrhage (Subtlety), Backstab (dagger + `/bw behind`), else Sinister Strike.
-6. Cooldowns (small icon): Adrenaline Rush and Blade Flurry (Combat), Cold Blood
-   before a finisher (Assassination), Preparation once Vanish and Evasion are used.
+6. Cooldowns (small icon): Kick when the target casts something interruptible (shown
+   big), Adrenaline Rush and Blade Flurry (Combat), Cold Blood before a finisher
+   (Assassination), Preparation once Vanish and Evasion are used.
+
+Out of melee range, the icon turns red and says so. Rupture's timer is kept per target.
 
 ## Commands
 

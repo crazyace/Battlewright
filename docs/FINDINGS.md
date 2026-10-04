@@ -24,12 +24,30 @@ What Battlewright does about it:
   Slice and Dice 6 + 3 x CP s, Rupture 6 + 2 x CP s (Classic). Talents that lengthen
   them aren't counted yet. Real aura data is used whenever the game allows it.
 
-## Round 2 (to run)
+## Round 2 (2026-10-03 21:19, 44 samples)
 
-`/bwp combat` now also tries, in combat: `C_UnitAuras.GetPlayerAuraBySpellID`,
-`GetAuraDataBySpellName`, `AuraUtil.FindAuraByName`, `UnitHealthPercent`,
-`UnitPowerPercent`, `GetPowerRegen`, `UnitGUID(target)`, `UnitCastingInfo` /
-`UnitChannelInfo(target)` (for Kick), `C_Spell.IsSpellInRange`, Blizzard's own
-rotation suggestion `C_AssistedCombat` (`IsAvailable`, `GetNextCastSpell`,
-`GetRotationSpells`), and whether `UNIT_SPELLCAST_SUCCEEDED`, `UNIT_POWER_FREQUENT`,
-`UNIT_AURA` and the combat log's arguments are readable.
+Saved in `data/probe/2026-10-03-combat-2.json`. No call was blocked (the combat log
+check, which caused "blocked from an action only available to the Blizzard UI" in an
+earlier try, was removed).
+
+| Call | In combat |
+|---|---|
+| `C_AssistedCombat.IsAvailable` | `false, "WRONG_WORLD_STATE_EXPRESSION"`: the API exists but Forever has the one-button assistant switched off; `GetNextCastSpell` / `GetRotationSpells` return nothing |
+| `UNIT_SPELLCAST_SUCCEEDED` | readable: unit, cast GUID, **spell ID** (e.g. Sinister Strike 1758) |
+| `UnitCastingInfo` / `UnitChannelInfo(target)` | readable (the mob didn't cast this time) |
+| `C_Spell.IsSpellInRange` | readable |
+| `UnitGUID(target)` | readable |
+| `C_UnitAuras.GetPlayerAuraBySpellID`, `GetAuraDataBySpellName`, `AuraUtil.FindAuraByName` | no error (unlike by index), but returned nothing: not up, or hidden? Round 3 counts real answers |
+| `UNIT_POWER_FREQUENT` | fires, readable (`player`, `ENERGY`), but carries no value |
+| `UNIT_AURA` | fires; its update info is secret |
+| `UnitHealthPercent`, `UnitPowerPercent`, `GetPowerRegen` | **secret** |
+
+What Battlewright does with it: Kick when the target casts something interruptible
+(shown big), "out of range" on the icon, Rupture timers kept per target GUID, and an
+aura lookup by spell ID used whenever it answers.
+
+## Round 3 (to run)
+
+Same checks; the probe now counts how often each lookup **found something**. Cast
+Slice and Dice during the fight to settle whether aura lookups by spell ID work in
+combat.

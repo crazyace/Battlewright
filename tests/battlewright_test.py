@@ -65,10 +65,14 @@ C_Spell = {
   GetSpellCooldown = function() return { startTime = 0, duration = 0 } end,
   IsSpellUsable = function() if GAME.noPower then return false, true end return true, false end,
   GetSpellTexture = function(name) return "icon:" .. tostring(name) end,
+  IsSpellInRange = function() return GAME.inRange ~= false end,
 }
+function UnitCastingInfo() if GAME.casting then return "Fireball", "", "", 0, 1, false, "id", GAME.casting == "uninterruptible", 133 end end
+function UnitGUID() return GAME.guid end
 function GetInventoryItemID(_, slot) if slot == 16 and GAME.mainHand then return 1 end end
 C_Item = { GetItemInfoInstant = function() return 1, "Weapon", "", "INVTYPE_WEAPON", 0, 2, GAME.mainHand end }
-C_UnitAuras = { GetAuraDataByIndex = function(unit, i)
+C_UnitAuras = { GetPlayerAuraBySpellID = function() return GAME.sndAura end,
+GetAuraDataByIndex = function(unit, i)
   if GAME.blocked then error("GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted") end
   local list = unit == "player" and GAME.buffs or GAME.debuffs
   local a = list[i]
@@ -224,6 +228,39 @@ view = L.eval("function(ns) GAME.noPower = true; GAME.cp = 0; GAME.now = 105 ret
 assert view["spell"] == "Sinister Strike" and view["short"] is True and view["wait"] is None, dict(view.items())
 L.execute("""GAME.noPower, GAME.energySecret, GAME.hpSecret, GAME.blocked = false, false, false, false
 GAME.now, GAME.cp = 100, 0; issecretvalue = nil""")
+L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
+
+# Round 2 (2026-10-03): the target's casts, range and GUID are readable in combat.
+L.execute("SECRET = {}; function issecretvalue(v) return v == SECRET end; GAME.blocked = true; GAME.energySecret = true")
+kit = {"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Rupture": 25, "Kick": 25}
+def full():
+    return L.eval("function(ns) local v = ns.Display.Compute() return v.main and v.main.spell, v.cooldown and v.cooldown.spell, v.main and v.main.outOfRange end")(ns)
+show(known=kit, cp=0)
+# Kick: suggested (big) when the target casts something interruptible; not for an uninterruptible cast.
+L.execute("GAME.casting = 'yes'")
+assert tuple(full())[:2] == ("Sinister Strike", "Kick"), tuple(full())
+L.execute("GAME.casting = 'uninterruptible'")
+assert tuple(full())[1] is None
+L.execute("GAME.casting = nil; GAME.inRange = false")
+# Out of melee range: the icon says so.
+assert tuple(full()) == ("Sinister Strike", None, True), tuple(full())
+L.execute("GAME.inRange = nil")
+# Rupture is tracked per target: casting it on mob A doesn't count for mob B.
+L.globals().SlashCmdList.BATTLEWRIGHT("spec subtlety")
+L.execute("GAME.guid = 'Creature-A'")
+show(cp=5)
+rup = L.eval("function(ns) return ns.Display.Compute().state.spells['Rupture'].id end")(ns)
+L.globals().fire("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-r", rup)
+assert L.eval("function(ns) return ns.Display.Compute().state.debuffs.Rupture ~= nil end")(ns) is True
+L.execute("GAME.guid = 'Creature-B'"); L.globals().fire("PLAYER_TARGET_CHANGED")
+assert L.eval("function(ns) return ns.Display.Compute().state.debuffs.Rupture end")(ns) is None
+L.execute("GAME.guid = 'Creature-A'")
+assert L.eval("function(ns) return ns.Display.Compute().state.debuffs.Rupture ~= nil end")(ns) is True
+# A lookup by spell ID that answers beats the estimate.
+L.execute("GAME.sndAura = { expirationTime = 130 }")
+assert L.eval("function(ns) return ns.Display.Compute().state.buffs['Slice and Dice'] end")(ns) == 30
+L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
+L.execute("GAME.sndAura = nil; GAME.blocked = false; GAME.energySecret = false; GAME.guid = nil; issecretvalue = nil")
 L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
 
 # BattlewrightProbe ------------------------------------------------------------------

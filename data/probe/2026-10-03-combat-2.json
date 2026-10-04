@@ -1,0 +1,337 @@
+{
+ "runs": [
+  {
+   "AuraUtil.FindAuraByName(Slice and Dice)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "C_AssistedCombat.GetNextCastSpell": {
+    "calls": 44,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "C_AssistedCombat.GetRotationSpells": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     []
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "C_AssistedCombat.IsAvailable": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     false,
+     "WRONG_WORLD_STATE_EXPRESSION"
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "C_Spell.GetSpellCooldown": {
+    "calls": 396,
+    "errors": 0,
+    "example": [
+     {
+      "activeCategory": 133,
+      "duration": 1,
+      "isActive": true,
+      "isEnabled": true,
+      "isOnGCD": true,
+      "modRate": 1,
+      "startTime": 20562.366,
+      "timeUntilEndOfStartRecovery": 0.879
+     }
+    ],
+    "missing": 0,
+    "readable": 396,
+    "secret": 0
+   },
+   "C_Spell.GetSpellPowerCost": {
+    "calls": 396,
+    "errors": 0,
+    "example": [
+     [
+      {
+       "cost": 45,
+       "costPerSec": 0,
+       "costPercent": 0,
+       "hasRequiredAura": false,
+       "minCost": 45,
+       "name": "ENERGY",
+       "requiredAuraID": 0,
+       "type": 3
+      }
+     ]
+    ],
+    "missing": 0,
+    "readable": 396,
+    "secret": 0
+   },
+   "C_Spell.IsSpellInRange(Sinister Strike)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     true
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "C_Spell.IsSpellUsable": {
+    "calls": 396,
+    "errors": 0,
+    "example": [
+     true,
+     false
+    ],
+    "missing": 0,
+    "readable": 396,
+    "secret": 0
+   },
+   "C_UnitAuras.GetAuraDataBySpellName(player, Slice and Dice)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "C_UnitAuras.GetPlayerAuraBySpellID(Slice and Dice)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "GetComboPoints": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     0
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "GetPowerRegen": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     10.001000404358,
+     10.001000404358
+    ],
+    "missing": 0,
+    "readable": 1,
+    "secret": 43
+   },
+   "GetTime": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     20562.487
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "IsStealthed": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     false
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "UnitCanAttack(target)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     true
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "UnitCastingInfo(target)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "UnitChannelInfo(target)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "UnitGUID(target)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     "Creature-0-6783-0-756-547-000041B726"
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "UnitHealth(target)": {
+    "calls": 44,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 44
+   },
+   "UnitHealthMax(target)": {
+    "calls": 44,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 44
+   },
+   "UnitHealthPercent(target)": {
+    "calls": 44,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 44
+   },
+   "UnitPower(combo points)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     0
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "UnitPower(energy)": {
+    "calls": 44,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 44
+   },
+   "UnitPowerMax(energy)": {
+    "calls": 44,
+    "errors": 0,
+    "example": [
+     105
+    ],
+    "missing": 0,
+    "readable": 44,
+    "secret": 0
+   },
+   "UnitPowerPercent(energy)": {
+    "calls": 44,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 44
+   },
+   "at": "2026-10-03 21:19:51",
+   "aura:player:HELPFUL": {
+    "calls": 44,
+    "error": "GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted by 'BattlewrightProbe'\nLua Taint: BattlewrightProbe",
+    "errors": 43,
+    "example": [],
+    "missing": 0,
+    "readable": 1,
+    "secret": 0
+   },
+   "aura:target:HARMFUL|PLAYER": {
+    "calls": 44,
+    "error": "GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted by 'BattlewrightProbe'\nLua Taint: BattlewrightProbe",
+    "errors": 43,
+    "example": [],
+    "missing": 0,
+    "readable": 1,
+    "secret": 0
+   },
+   "buffs": [],
+   "debuffs": [],
+   "event:PLAYER_TARGET_CHANGED": {
+    "calls": 1,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 1,
+    "secret": 0
+   },
+   "event:UNIT_AURA": {
+    "calls": 6,
+    "errors": 0,
+    "example": [
+     "player",
+     {
+      "isFullUpdate": "<secret>",
+      "removedAuraInstanceIDs": "<secret>"
+     }
+    ],
+    "missing": 0,
+    "readable": 6,
+    "secret": 0
+   },
+   "event:UNIT_POWER_FREQUENT": {
+    "calls": 243,
+    "errors": 0,
+    "example": [
+     "player",
+     "ENERGY"
+    ],
+    "missing": 0,
+    "readable": 243,
+    "secret": 0
+   },
+   "event:UNIT_SPELLCAST_SUCCEEDED": {
+    "calls": 9,
+    "errors": 0,
+    "example": [
+     "player",
+     "Cast-3-6783-0-756-1758-000141B7C4",
+     1758
+    ],
+    "missing": 0,
+    "readable": 9,
+    "secret": 0
+   },
+   "eventsRegistered": {
+    "PLAYER_TARGET_CHANGED": true,
+    "UNIT_AURA": true,
+    "UNIT_POWER_FREQUENT": true,
+    "UNIT_SPELLCAST_SUCCEEDED": true
+   },
+   "known": {
+    "Backstab": 2589,
+    "Evasion": 5277,
+    "Eviscerate": 6761,
+    "Garrote": 703,
+    "Gouge": 1777,
+    "Kick": 1766,
+    "Sinister Strike": 1758,
+    "Slice and Dice": 5171,
+    "Sprint": 2983
+   },
+   "samples": 44
+  }
+ ],
+ "version": 1
+}

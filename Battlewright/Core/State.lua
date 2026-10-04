@@ -4,14 +4,18 @@
 --     buffs = { [name] = secondsLeft }, debuffs = { [name] = secondsLeft },   (mine on the target)
 --     spells = { [name] = { id, cost, cooldown (s left), usable, noPower } } }   (known spells only)
 --   estimated = true when buffs/debuffs come from Tracker.lua, not the game.
+--   target.casting = { interruptible = bool } while the target casts or channels,
+--   inRange = false when out of melee range (nil = unknown),
 --   talents = { [name] = rank } (read out of combat), mainHand = weapon subclass
 --   (15 = dagger) or nil, behind = true when you've told Battlewright to assume
 --   you're behind the target (/bw behind; the game doesn't say).
 --
--- What Forever lets addons read in combat (BattlewrightProbe, 2026-10-03):
--- combo points, cooldowns, costs, IsSpellUsable (incl. "not enough power"),
--- stealth: yes. Energy and target health: secret. Auras: blocked. So energy
--- and target health may be nil, and buffs/debuffs fall back to Tracker.lua.
+-- What Forever lets addons read in combat (BattlewrightProbe, 2026-10-03,
+-- docs/FINDINGS.md): combo points, cooldowns, costs, IsSpellUsable (incl. "not
+-- enough power"), stealth, range, the target's GUID and casts, your cast
+-- events: yes. Energy, target health (and their percents), energy regen:
+-- secret. Auras by index: blocked. So energy and target health may be nil, and
+-- buffs/debuffs fall back to Tracker.lua (or a lookup by spell ID, if it answers).
 -- Returns nil, "secret" only when combo points are hidden (no rotation without
 -- them), and nil, "no-api" when a call it needs is missing.
 local _, ns = ...
@@ -103,6 +107,39 @@ for _, event in ipairs({ "SPELLS_CHANGED", "LEARNED_SPELL_IN_TAB", "PLAYER_TALEN
   ns:On(event, function() spellIDs = {} end)
 end
 
+-- One of your auras by spell ID: seconds left, or nil when the game doesn't
+-- say (not up, or hidden).
+function State.AuraBySpellID(id, now)
+  local get = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
+  if not get then return nil end
+  local ok, a = pcall(get, id)
+  if not ok or type(a) ~= "table" or secret(a.expirationTime) then return nil end
+  if type(a.expirationTime) == "number" and a.expirationTime > 0 then return a.expirationTime - now end
+  return math.huge
+end
+
+-- The target's cast or channel: { interruptible } or nil.
+function State.Casting()
+  for _, fn in ipairs({ UnitCastingInfo, UnitChannelInfo }) do
+    if fn then
+      local r = { pcall(fn, "target") }
+      if r[1] and r[2] ~= nil and not secret(r[2]) then
+        local notInterruptible = fn == UnitCastingInfo and r[9] or r[8]
+        return { interruptible = not secret(notInterruptible) and notInterruptible ~= true }
+      end
+    end
+  end
+end
+
+-- In melee range of the target (by Sinister Strike's range), or nil if unknown.
+function State.InRange(spells)
+  local probe = spells["Sinister Strike"]
+  if not (probe and C_Spell and C_Spell.IsSpellInRange) then return nil end
+  local ok, inRange = pcall(C_Spell.IsSpellInRange, probe.id, "target")
+  if not ok or secret(inRange) or inRange == nil then return nil end
+  return inRange == true
+end
+
 function State.Read()
   if not (UnitPower and GetTime) then return nil, "no-api" end
   local now = GetTime()
@@ -131,15 +168,28 @@ function State.Read()
   end
   if s.target.exists then
     s.target.attackable = UnitCanAttack("player", "target") == true
+    s.target.casting = State.Casting()
     local hp, max = UnitHealth("target"), UnitHealthMax("target")
     if not secret(hp) and not secret(max) and type(max) == "number" and max > 0 then s.target.hp = hp / max end
   end
-  s.buffs = auras("player", "HELPFUL", now)
-  s.debuffs = s.target.exists and auras("target", "HARMFUL|PLAYER", now) or {}
-  -- Auras blocked: use what our own casts say instead.
-  if not s.buffs then s.buffs, s.estimated = ns.Tracker.Remaining(false, now), true end
-  if not s.debuffs then s.debuffs, s.estimated = ns.Tracker.Remaining(true, now), true end
   local _, class = UnitClass("player")
   for _, name in ipairs(State.SPELLS[class] or {}) do s.spells[name] = spell(name, now) end
+  s.inRange = State.InRange(s.spells)
+  s.buffs = auras("player", "HELPFUL", now)
+  -- (Not `exists and auras(...) or {}`: a blocked read returns nil, which that
+  -- would turn into "no debuffs" instead of falling back to the tracker.)
+  s.debuffs = {}
+  if s.target.exists then s.debuffs = auras("target", "HARMFUL|PLAYER", now) end
+  -- Auras blocked: use what our own casts say instead, unless a lookup by
+  -- spell ID gives the real thing.
+  if not s.buffs then
+    s.buffs, s.estimated = ns.Tracker.Remaining(false, now), true
+    for name in pairs(ns.Tracker.DURATION) do
+      local id = s.spells[name] and s.spells[name].id
+      local left = id and State.AuraBySpellID(id, now)
+      if left then s.buffs[name] = left end
+    end
+  end
+  if not s.debuffs then s.debuffs, s.estimated = ns.Tracker.Remaining(true, now), true end
   return s
 end
