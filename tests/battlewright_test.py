@@ -472,6 +472,30 @@ assert L.eval("function(ns) return ns.Guide.mode end")(ns) == "solo"
 assert "Gouge trick" in L.eval(path_text)(ns)
 L.eval("function(ns) ns.db.guideMode = false end")(ns)
 
+# A build picked on the Talents page drives the Rotation page: Sassy's 10 points
+# as Combat play as Combat, with a line saying it's a preview.
+rot_text = """function(ns) local out = {} for _, sec in ipairs(ns.Guide.sections) do
+  for _, r in ipairs(sec.rows) do out[#out + 1] = r.text end end return table.concat(out, "\\n") end"""
+L.eval("function(ns) ns.Guide.SetBuild('combat') end")(ns)
+ptext = L.eval(rot_text)(ns)
+assert L.eval("function(ns) return ns.Guide.frame.subtitle.text end")(ns) == "Combat  -  level 19"
+assert ptext.startswith("Previewing Combat: sturdy with your 10 talent points"), ptext
+assert "Your own talents play as Assassination" in ptext and "Spec: Combat" in ptext, ptext
+# The build you follow (Malice 5, Ruthlessness 3, Remorseless Attacks 2 = Mutilate's
+# first 10 points): your own talents, no preview. Nothing picked: the same.
+for key in ["'mutilate'", "nil"]:
+    L.eval(f"function(ns) ns.Guide.SetBuild({key}) end")(ns)
+    assert "Previewing" not in L.eval(rot_text)(ns), key
+    assert L.eval("function(ns) return ns.Guide.frame.subtitle.text end")(ns) == "Assassination  -  level 19"
+# The preview teaches the build's spells and drops the ones it doesn't take; the
+# in-combat state is untouched.
+pv = L.eval("""function(ns) local R = ns.Rotations.ROGUE
+  local s = { spells = { Mutilate = { id = 1 }, ["Sinister Strike"] = { id = 2 } }, talents = { Mutilate = 1 } }
+  local p, spec = R.Preview(s, R.BUILDS.combat, 21)
+  return spec, p.spells["Blade Flurry"] ~= nil, p.spells.Mutilate == nil, p.spells["Sinister Strike"] ~= nil,
+    s.spells.Mutilate ~= nil, s.talents.Mutilate, p.talents["Blade Flurry"] end""")(ns)
+assert tuple(pv) == ("combat", True, True, True, True, 1, 1), tuple(pv)
+
 # With a sword and Mutilate: no Ambush/Backstab, finish at 4, Eureka! at 0+... (4 - 2x2 = 0).
 L.execute("GAME.mainHand = 7"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
 show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Mutilate": 60, "Gouge": 45, "Cold Blood": 0,
