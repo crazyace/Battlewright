@@ -159,8 +159,13 @@ local function cooldown(s, spec)
   -- usually can't say: the cast's details are secret).
   local cast = s.target.casting
   if cast and cast.interruptible ~= false and ready(s, "Kick") then
-    return { spell = "Kick", why = cast.interruptible and "interrupt the cast" or "the target is casting", urgent = true,
-      notInterruptible = cast.raw }
+    local kick = { spell = "Kick", why = cast.interruptible and "interrupt the cast" or "the target is casting",
+      urgent = true }
+    -- Only a secret flag is handed on (for the display to draw); a readable
+    -- one already said "interruptible" above. (No `x and y or z` on it: testing
+    -- a secret value is an error.)
+    if cast.rawSecret then kick.notInterruptible = cast.raw end
+    return kick
   end
   if s.stealthed and s.cp == 0 and ready(s, "Premeditation") then
     return { spell = "Premeditation", why = "before your opener" }

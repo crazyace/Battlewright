@@ -23,7 +23,13 @@ local _, ns = ...
 local State = {}
 ns.State = State
 
+-- On Forever even `x ~= nil` or `x == true` on a secret value gives a secret
+-- boolean, and testing that (if / and / or / not) is an error ("attempt to
+-- perform boolean test on ... a secret boolean value", beta 2026-10-04). So
+-- every value that may be secret is checked with secret() BEFORE anything else.
 local function secret(v) return issecretvalue ~= nil and issecretvalue(v) == true end
+local function yes(v) return not secret(v) and v == true end -- true, and readable
+State.secret, State.yes = secret, yes
 
 -- Spells the rotations ask about, per class.
 State.SPELLS = {
@@ -95,8 +101,8 @@ local function spell(name, now)
   if C_Spell.IsSpellUsable then
     local ok, usable, noPower = pcall(C_Spell.IsSpellUsable, id)
     if ok and not secret(usable) then
-      s.usable = usable == true or noPower == true
-      s.noPower = not secret(noPower) and noPower == true
+      s.noPower = yes(noPower)
+      s.usable = usable == true or s.noPower
     end
   end
   return s
@@ -126,14 +132,15 @@ function State.Casting()
   for _, fn in ipairs({ UnitCastingInfo, UnitChannelInfo }) do
     if fn then
       local r = { pcall(fn, "target") }
-      if r[1] and r[2] ~= nil then
-        local notInterruptible = fn == UnitCastingInfo and r[9] or r[8]
+      if r[1] and (secret(r[2]) or r[2] ~= nil) then
+        local notInterruptible
+        if fn == UnitCastingInfo then notInterruptible = r[9] else notInterruptible = r[8] end
         -- raw: the flag as the game gave it, maybe secret. Addon code can't read
         -- a secret one, but can hand it to a widget (SetAlphaFromBoolean), which
         -- the game then draws: that's how the Kick icon hides for casts that
         -- can't be interrupted.
-        if secret(notInterruptible) then return { interruptible = nil, raw = notInterruptible } end
-        return { interruptible = notInterruptible ~= true, raw = notInterruptible == true }
+        if secret(notInterruptible) then return { interruptible = nil, raw = notInterruptible, rawSecret = true } end
+        return { interruptible = notInterruptible ~= true, raw = notInterruptible == true, rawSecret = false }
       end
     end
   end
@@ -155,16 +162,16 @@ function State.Read()
   local cpType = Enum and Enum.PowerType and Enum.PowerType.ComboPoints or 4
   local energy, energyMax = UnitPower("player", energyType), UnitPowerMax("player", energyType)
   local cp = UnitPower("player", cpType)
-  if (not cp or cp == 0) and GetComboPoints then cp = GetComboPoints("player", "target") end
+  if not secret(cp) and (not cp or cp == 0) and GetComboPoints then cp = GetComboPoints("player", "target") end
   if secret(cp) then return nil, "secret" end
   if secret(energy) then energy = nil end -- hidden in combat on Forever
   if secret(energyMax) then energyMax = nil end
   ns.Tracker.lastCP = cp or 0
   local s = {
     now = now, energy = energy, energyMax = energyMax or 100, cp = cp or 0, regen = 10,
-    stealthed = IsStealthed and IsStealthed() == true or false,
-    inCombat = UnitAffectingCombat and UnitAffectingCombat("player") == true or false,
-    target = { exists = UnitExists("target") == true },
+    stealthed = IsStealthed ~= nil and yes(IsStealthed()),
+    inCombat = UnitAffectingCombat ~= nil and yes(UnitAffectingCombat("player")),
+    target = { exists = yes(UnitExists("target")) },
     spells = {},
     talents = ns.Talents.Get().ranks,
     mainHand = weapon(),
@@ -175,7 +182,7 @@ function State.Read()
     if ok and type(active) == "number" and not secret(active) and active > 0 then s.regen = active end
   end
   if s.target.exists then
-    s.target.attackable = UnitCanAttack("player", "target") == true
+    s.target.attackable = yes(UnitCanAttack("player", "target"))
     s.target.casting = State.Casting()
     local hp, max = UnitHealth("target"), UnitHealthMax("target")
     if not secret(hp) and not secret(max) and type(max) == "number" and max > 0 then s.target.hp = hp / max end

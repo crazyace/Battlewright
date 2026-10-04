@@ -116,12 +116,15 @@ end
 
 -- Kick: shown unless the game says the cast can't be interrupted. That flag is
 -- secret in combat, so the game applies it: alpha 0 when true, 1 when false.
+-- (Only a secret flag ever gets here, and it's never compared or tested:
+-- on Forever that's an error.)
 local function kickVisibility(cd, icon)
-  if cd.notInterruptible == nil or not icon.SetAlphaFromBoolean then
+  local flag = cd.notInterruptible
+  if issecretvalue and issecretvalue(flag) and icon.SetAlphaFromBoolean then
+    if not pcall(icon.SetAlphaFromBoolean, icon, flag, 0, 1) then icon:SetAlpha(1) end
+  else
     icon:SetAlpha(1)
-    return
   end
-  if not pcall(icon.SetAlphaFromBoolean, icon, cd.notInterruptible, 0, 1) then icon:SetAlpha(1) end
 end
 
 function Display.Update()

@@ -31,7 +31,7 @@ local function secret(v) return issecretvalue ~= nil and issecretvalue(v) == tru
 
 local function targetGUID()
   local g = UnitGUID and UnitGUID("target")
-  if g == nil or secret(g) then return nil end
+  if secret(g) or g == nil then return nil end -- secret first: comparing one is an error
   return g
 end
 

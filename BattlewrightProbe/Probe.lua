@@ -469,6 +469,7 @@ events:SetScript("OnEvent", function(_, event, ...)
     combatEnd()
   elseif combat.ticker and combat.out then
     local unit = ...
+    if isSecret(unit) then return end -- comparing a secret value is an error
     if event:find("^UNIT_") and unit ~= "player" and unit ~= "target" then return end
     pcall(noteEvent, combat.out, event, ...)
   end

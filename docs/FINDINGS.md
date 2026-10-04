@@ -112,3 +112,26 @@ Nothing changes for the rotation; two details:
 seconds before it ran out, which is what it's built to do. So its estimate of the
 duration (6 + 3 s per combo point) matches the game.
 
+## Comparing a secret value is an error (2026-10-04, in game)
+
+`error: Battlewright/Core/State.lua:130: attempt to perform boolean test on field '?' (a
+secret boolean value, while execution tainted by 'Battlewright')`, while a Black Dragon
+Whelp cast Fireball. The code was `if r[1] and r[2] ~= nil then`, where `r[2]` was
+UnitCastingInfo's secret spell name.
+
+On Forever, **comparing a secret value (`== nil`, `~= nil`, `== true`) doesn't give a
+plain true or false. It gives a secret boolean**, and testing that with
+`if` / `and` / `or` / `not` raises this error. The display then had nothing to show,
+which explains the question-mark icon whenever a mob cast. The mocks can't model this,
+because Lua 5.1 has no way to hook truth tests.
+
+**The rule now:** call `secret(v)` (issecretvalue) on anything that may be secret before
+any other use. Never write `x and y or z` with a secret `x` or `y`, and never compare a
+secret value. Fixed in:
+- `State.Casting` (the cast check and the interruptible flag);
+- combo points, stealth, combat, target exists and can-attack (via `yes(v)`);
+- `IsSpellUsable`'s noPower;
+- `Tracker.targetGUID`;
+- the Kick fade, and how the rotation hands that flag on;
+- the probe's event filter.
+
