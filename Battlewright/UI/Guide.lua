@@ -11,10 +11,13 @@ local _, ns = ...
 local Guide = {}
 ns.Guide = Guide
 
-local WIDTH, HEIGHT = 440, 580
-local INNER = WIDTH - 64          -- width of the scrolling content
+-- Landscape, like ForeverDungeonJournal: wide enough for a whole cycle on one
+-- row of icons. INNER is the scroll area's width (window - page insets 2 x 16
+-- - scroll frame insets 8 + 28) less a small margin, so cards never clip.
+local WIDTH, HEIGHT = 600, 520
+local INNER = WIDTH - 32 - 36 - 6
 local ROW_ICON, PATH_ICON = 26, 30
-local CELL, LABEL_WIDTH = 42, 84  -- path: one icon's slot, the lane label column
+local CELL, LABEL_WIDTH = 50, 112 -- path: one icon's slot, the lane label column
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local EDGE = "Interface\\Tooltips\\UI-Tooltip-Border"
@@ -186,7 +189,7 @@ local function cell(f, i)
       count = f.layer:CreateFontString(nil, "OVERLAY", "NumberFontNormal") }
     c.icon:SetSize(PATH_ICON, PATH_ICON)
     c.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    c.note:SetWidth(CELL + 14)
+    c.note:SetWidth(CELL + 16)
     c.note:SetJustifyH("CENTER")
     c.note:SetTextColor(unpack(THEME.muted))
     return c
