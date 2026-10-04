@@ -318,8 +318,8 @@ function Guide.Refresh()
   hideAll(f)
   local level = UnitLevel and UnitLevel("player")
   local specName = sections and (specOrWhy:gsub("^%l", string.upper)) or nil
-  f.subtitle:SetText(specName and ("%s  -  %s%s"):format(Guide.page == "talents" and "Your talents" or "Your rotation",
-    specName, level and ("  -  level " .. level) or "") or "")
+  -- (Short: the tabs on both sides of the band say which page this is.)
+  f.subtitle:SetText(specName and ("%s%s"):format(specName, level and ("  -  level " .. level) or "") or "")
 
   local y, nh, nl, nlane, nc, nw = 0, 0, 0, 0, 0, 0
 
@@ -567,7 +567,9 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
         local rank, goal = e.rank or 0, target[e.name] or 0
         local status = (e.name == nextName and "next") or (goal > 0 and (rank >= goal and "done" or "todo"))
           or (rank > 0 and "off") or "none"
-        nd.status, nd.name, nd.spellID, nd.line = status, e.name, e.spellID, STATUS[status][2]
+        nd.status, nd.name, nd.spellID = status, e.name, e.spellID
+        nd.line = STATUS[status][2] and (goal > 0 and ("%s (this build: %d of %d ranks)"):format(STATUS[status][2], goal,
+          e.max or goal) or STATUS[status][2])
         nd.icon:SetTexture(ns.Display.Texture(e.name, e.spellID))
         nd.icon:SetDesaturated(status == "none")
         nd.icon:SetAlpha(status == "none" and 0.45 or 1)
@@ -576,7 +578,10 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
           nd:SetBackdropColor(0.05, 0.04, 0.03, 0.9)
           nd:SetBackdropBorderColor(c[1], c[2], c[3], 1)
         end
-        nd.rank:SetText(goal > 0 and ("%d/%d"):format(rank, goal) or (rank > 0 and tostring(rank) or ""))
+        -- Rank / max ranks on every talent, like the game's own talent window;
+        -- what the build wants is the border color (and the tooltip).
+        nd.rank:SetText(e.max and ("%d/%d"):format(rank, e.max) or (rank > 0 and tostring(rank) or ""))
+        nd.rank:SetTextColor(unpack(status == "none" and THEME.muted or { 1, 1, 1 }))
         local x0 = (e.tab - 1) * colWidth + (colWidth - 4 * NODE_GAP) / 2
         nd:ClearAllPoints()
         nd:SetPoint("TOPLEFT", f.content, "TOPLEFT", x0 + col * NODE_GAP, top - row * NODE_GAP)
@@ -584,8 +589,8 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
       end
     end
     y = top - rows * NODE_GAP - 2
-    y = addCard("Green: done.  Gold: still to take.  Bright: your next point.  Red: not in this build.  "
-      .. "Numbers: your rank / the build's. Hover a talent for its text.", y)
+    y = addCard("Borders: green done, gold still to take, bright your next point, red not in this build. "
+      .. "Numbers: your rank / max ranks. Hover a talent for its text and how many ranks this build takes.", y)
   end
 
   y = addHeader("The plan", y)
