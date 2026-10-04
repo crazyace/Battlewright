@@ -6,8 +6,7 @@ your gear; Battlewright your fight).
 
 > Status: **first draft, untested in game.** Rogue only (Assassination, Combat,
 > Subtlety). Whether it can work on Forever at all depends on what the game lets
-> addons read in combat: run `/gwp combat` with GearwrightProbe (in the Gearwright repo)
-> first.
+> addons read in combat: run `/bwp combat` with BattlewrightProbe first (below).
 
 ## What it shows
 
@@ -46,6 +45,20 @@ The spec comes from your talents' spells (Mutilate, Hemorrhage, Blade Flurry...)
 
 Copy the `Battlewright` folder into `Interface/AddOns/`.
 
+## BattlewrightProbe (dev only)
+
+A second addon in this repo that answers whether Battlewright can work on Forever: can an
+addon read energy, combo points, buffs and debuffs (and their timers), cooldowns and spell
+usability **during a fight**, or does the game hide them (`issecretvalue`)?
+
+1. Copy `BattlewrightProbe` into `Interface/AddOns/` too.
+2. `/bwp combat`, then fight something (a target dummy or a mob) for 10-30 seconds.
+3. When combat ends it says what was readable and what was hidden. `/reload`, then send
+   `/bwp export` or `WTF/Account/<ACCOUNT>/SavedVariables/BattlewrightProbe.lua`.
+4. `python tools/probe_summary.py BattlewrightProbe.lua` prints the verdict.
+
+The last 5 recordings are kept; `/bwp clear` empties them.
+
 ## Layout
 
 ```
@@ -56,7 +69,9 @@ Battlewright/
   Rotations/Rogue.lua  the priorities: pure functions of a state table
   UI/Display.lua       the icon
   Core/Commands.lua    /bw
-tests/battlewright_test.py   runs the addon against a mocked WoW API
+BattlewrightProbe/            dev-only: what can an addon read in combat? (/bwp)
+tools/probe_summary.py       summarises its recordings
+tests/battlewright_test.py   runs both addons against a mocked WoW API
 ```
 
 Tests: `pip install "lupa>=2.0"`, then `python tests/battlewright_test.py`.

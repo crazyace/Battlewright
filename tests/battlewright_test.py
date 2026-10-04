@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Battlewright test: load the addon against a small mocked WoW API.
+"""Battlewright tests: load the addons against a small mocked WoW API.
 
     pip install "lupa>=2.0"
     python tests/battlewright_test.py
 
 Checks the Rogue priorities on hand-made states, reading state from the
-mocked game (including a secret value), spec detection, and the display.
+mocked game (including a secret value), spec detection, the display, and
+BattlewrightProbe's combat recorder with tools/probe_summary.py.
 """
 from lupa import lua51
 from pathlib import Path
@@ -28,6 +29,7 @@ function CreateFrame()
   f.Hide = function(self) self.shown = false end
   f.SetAlpha = function(self, a) self.alpha = a end
   f.GetPoint = function() return "CENTER", nil, "CENTER", 0, -160 end
+  f.SetText = function(self, t) self.text = t; EXPORTTEXT = t end
   return f
 end
 function fire(event, ...)
@@ -137,4 +139,39 @@ assert f.alpha == 1 and f.icon.tex.startswith("icon:") and ":" in f.why.text, (f
 L.execute("GAME.combat = false")
 L.eval("function(ns) ns.Display.Update() end")(ns)
 assert f.alpha == 0
+
+# BattlewrightProbe ------------------------------------------------------------------
+# /bwp combat records the next fight: twice a second for up to 30 s, which calls
+# come back readable or secret. Here aura timers are secret.
+import json, subprocess, sys, tempfile
+L.execute("""
+C_Timer = { After = function(_, fn) fn() end }
+function date() return "2026-10-04 12:00:00" end
+UISpecialFrames, ChatFontNormal = {}, {}
+tinsert = table.insert
+SECRET = {}
+function issecretvalue(v) return v == SECRET end
+function GetComboPoints() return 3 end
+GAME.cp, GAME.energy, GAME.buffs = 3, 80, { { "Slice and Dice", SECRET } }
+""")
+for line in (R / "BattlewrightProbe" / "BattlewrightProbe.toc").read_text().splitlines():
+    line = line.strip()
+    if line and not line.startswith("#"):
+        path = R / "BattlewrightProbe" / line
+        L.eval("function(src, name) return assert(loadstring(src, '@' .. name)) end")(path.read_text(), str(path))("BattlewrightProbe", L.table())
+L.execute("printed = {}")
+L.globals().SlashCmdList.BATTLEWRIGHTPROBE("combat")
+L.globals().fire("PLAYER_REGEN_DISABLED"); L.globals().fire("PLAYER_REGEN_ENABLED")
+run = L.eval("""function() local r = BattlewrightProbeDB.runs[1]
+  return r.samples, r["UnitPower(energy)"].readable, r["aura expirationTime"].secret > 0, r.known["Sinister Strike"] ~= nil end""")()
+assert tuple(run) == (60, 60, True, True), tuple(run)
+out = "\n".join(L.globals().printed.values())
+assert "SECRET: aura expirationTime" in out, out
+L.globals().SlashCmdList.BATTLEWRIGHTPROBE("export")
+export = Path(tempfile.mkdtemp()) / "export.json"
+export.write_text(L.globals().EXPORTTEXT)
+assert json.loads(export.read_text())["runs"][0]["samples"] == 60
+r = subprocess.run([sys.executable, str(R / "tools" / "probe_summary.py"), str(export)], capture_output=True, text=True)
+assert r.returncode == 0 and "aura expirationTime: SECRET" in r.stdout and "hidden in combat: aura expirationTime" in r.stdout, r.stdout + r.stderr
+print(r.stdout)
 print("BATTLEWRIGHT TESTS PASSED")

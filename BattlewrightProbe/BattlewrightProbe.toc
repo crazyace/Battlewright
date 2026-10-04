@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: BattlewrightProbe
+## Notes: Dev-only: records what Battlewright can read in combat on WoW: Forever. /bwp
+## Author: Jeff
+## Version: 0.1.0-dev
+## SavedVariables: BattlewrightProbeDB
+
+Probe.lua
