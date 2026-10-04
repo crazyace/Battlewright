@@ -443,7 +443,6 @@ end
 
 -- Talents page ----------------------------------------------------------------------
 -- The build picker, your tree with the build laid over it, then the plan.
-local BUILD_ORDER = { "mutilate", "backstab", "combat" }
 local NODE, NODE_GAP, TREE_HEAD = 30, 42, 20
 local TREE_NAMES = { "Assassination", "Combat", "Subtlety" }
 local STATUS = { -- border color and tooltip line
@@ -508,8 +507,10 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
 
   -- Build picker: the three builds, the best fit marked, the shown one lit.
   y = addHeader("Pick a build", y)
-  local width = (INNER - 8) / #BUILD_ORDER
-  for i, key in ipairs(BUILD_ORDER) do
+  -- The builds that fit the Solo/Group tab and your weapons, best fit first.
+  local width = (INNER - 4 * (#tg.picks - 1)) / #tg.picks
+  for i, pick in ipairs(tg.picks) do
+    local key = pick[1]
     local b = buildButton(f, i)
     local build = rotation.BUILDS[key]
     b:ClearAllPoints()

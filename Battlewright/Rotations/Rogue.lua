@@ -301,8 +301,11 @@ end
 -- mode and your weapons), why, and where you are on it. Returns
 -- { picks, key, build, plan, rows = { { spell, id, text } } }.
 function Rogue.TalentGuide(s, mode, level, chosen)
-  if chosen and not Rogue.BUILDS[chosen] then chosen = nil end
   local picks = Rogue.PickBuilds(s, mode)
+  -- Only the builds that fit the mode (no group Backstab build on the Solo tab).
+  local fits = false
+  for _, p in ipairs(picks) do if p[1] == chosen then fits = true end end
+  if not fits then chosen = nil end
   local key = chosen or picks[1][1]
   local best = Rogue.BUILDS[key]
   local reason

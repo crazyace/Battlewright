@@ -314,6 +314,13 @@ for want in ["Assassination: Mutilate: Ambush openers, Lethality crits and Mutil
              "Level 30: Mutilate 1", "Also good: Combat: sturdy, if you'd rather not die (equip an off-hand weapon"]:
     assert want in ttext, want
 assert "Not in this build" not in ttext
+# Solo shows only the solo builds: no group Backstab build button.
+shown = L.eval("""function(ns) local out = {} for _, b in ipairs(ns.Guide.frame.builds) do
+  if b.shown then out[#out + 1] = b.name.text end end return table.concat(out, ", ") end""")(ns)
+assert shown == "Assassination: Mutilate, Combat: sturdy", shown
+# A group build chosen while on Solo isn't shown.
+L.eval("function(ns) ns.Guide.SetBuild('backstab') end")(ns)
+assert L.eval("function(ns) return ns.Guide.talents.key end")(ns) == "mutilate"
 # Pick another build: the plan follows it and names the best fit.
 L.eval("function(ns) ns.Guide.SetBuild('combat') end")(ns)
 ttext = L.eval(talents_text)(ns)
