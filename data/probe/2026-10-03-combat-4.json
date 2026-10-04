@@ -1,0 +1,131 @@
+{
+ "runs": [
+  {
+   "AuraUtil.FindAuraByName(Slice and Dice)": {
+    "calls": 42,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 42,
+    "secret": 0
+   },
+   "C_Spell.IsSpellInRange(Sinister Strike)": {
+    "calls": 42,
+    "errors": 0,
+    "example": [
+     false
+    ],
+    "found": 41,
+    "foundExample": [
+     false
+    ],
+    "missing": 0,
+    "readable": 42,
+    "secret": 0
+   },
+   "C_UnitAuras.GetAuraDataBySpellName(player, Slice and Dice)": {
+    "calls": 42,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 42,
+    "secret": 0
+   },
+   "C_UnitAuras.GetPlayerAuraBySpellID(Slice and Dice)": {
+    "calls": 42,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 42,
+    "secret": 0
+   },
+   "UnitCastingInfo(target)": {
+    "calls": 42,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 34,
+    "secret": 8
+   },
+   "UnitGUID(target)": {
+    "calls": 42,
+    "errors": 0,
+    "example": [
+     "Creature-0-6783-0-756-441-000041B909"
+    ],
+    "found": 41,
+    "foundExample": [
+     "Creature-0-6783-0-756-441-000041B909"
+    ],
+    "missing": 0,
+    "readable": 42,
+    "secret": 0
+   },
+   "UnitHealth(target)": {
+    "calls": 42,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 42
+   },
+   "UnitPower(combo points)": {
+    "calls": 42,
+    "errors": 0,
+    "example": [
+     0
+    ],
+    "found": 42,
+    "foundExample": [
+     0
+    ],
+    "missing": 0,
+    "readable": 42,
+    "secret": 0
+   },
+   "UnitPower(energy)": {
+    "calls": 42,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 42
+   },
+   "at": "2026-10-03 21:33:39",
+   "casts": {
+    "Eviscerate": 1,
+    "Kick": 2,
+    "Sinister Strike": 4,
+    "Slice and Dice": 2
+   },
+   "debuffs": [],
+   "event:UNIT_AURA": {
+    "calls": 4,
+    "errors": 0,
+    "example": [
+     "player",
+     {
+      "addedAuras": "<secret>",
+      "isFullUpdate": "<secret>"
+     }
+    ],
+    "missing": 0,
+    "readable": 4,
+    "secret": 0
+   },
+   "event:UNIT_SPELLCAST_SUCCEEDED": {
+    "calls": 9,
+    "errors": 0,
+    "example": [
+     "player",
+     "Cast-3-6783-0-756-1766-0000C1BB00",
+     1766
+    ],
+    "missing": 0,
+    "readable": 9,
+    "secret": 0
+   },
+   "note": "trimmed to the round-4 calls that matter; full export in the conversation of 2026-10-04",
+   "samples": 42
+  }
+ ],
+ "version": 1
+}

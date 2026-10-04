@@ -79,7 +79,19 @@ Battlewright now uses the first two: an energy bar under the icon fed straight f
 `UnitPower`, and the Kick icon given `notInterruptible` through `SetAlphaFromBoolean`,
 so the game hides it for casts that can't be interrupted.
 
-## Next round
+## Round 4 (2026-10-03 21:33, 42 samples): settled
 
-The probe now logs which spells you cast in each recorded fight (`you cast: ...` in
-the summary), to confirm what was up when the aura lookups came back empty.
+Saved (trimmed) in `data/probe/2026-10-03-combat-4.json`. You cast Slice and Dice x2,
+Kick x2, Sinister Strike x4, Eviscerate x1.
+
+- **Aura lookups return nothing in combat even while the aura is up.** Slice and Dice
+  was cast twice, yet `GetPlayerAuraBySpellID`, `GetAuraDataBySpellName` and
+  `AuraUtil.FindAuraByName` found nothing in all 42 samples. Battlewright's cast-based
+  tracker is the only way to know your buffs and debuffs in combat.
+- **The target's casts:** `UnitCastingInfo` was secret in 8 samples (the mob casting)
+  and you Kicked twice: "secret = casting" holds.
+- `IsSpellInRange` and `UnitGUID(target)` answered nothing once each (no target for a
+  moment), readable otherwise.
+
+What an addon can and can't use in combat on Forever is now known; see the tables
+above. Further probing isn't needed for the Rogue rotation.
