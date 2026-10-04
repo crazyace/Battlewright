@@ -2,16 +2,57 @@
 --   main = { spell, why, wait (seconds of energy to wait for, 0 = now, nil =
 --            unknown), short (true while there isn't enough energy) },
 --   cooldown = { spell, why } or nil   (an off-the-GCD cooldown worth using now)
--- A first, simple version (2026-10-04) built on Classic Rogue play; refine as
--- Forever's talents (Venom, Restless Blades, Thousand Cuts...) get tested.
+-- Built from what you have: known spells and ranks (state.spells), talents
+-- (state.talents, read out of combat), and your main-hand weapon. Classic
+-- Rogue play to start; Forever's new talents are listed by /bw talents with
+-- their descriptions until their effect on the rotation is known.
 local _, ns = ...
 
 local Rogue = {}
 ns.Rotations.ROGUE = Rogue
 
+-- Forever puts all three specs in one Traits tree; a node's group ID says
+-- which (from Gearwright's 2026-10-03 beta capture).
+Rogue.tabGroups = { [11580] = 1, [11573] = 2, [11572] = 3 }
+Rogue.tabToSpec = { [1] = "assassination", [2] = "combat", [3] = "subtlety" }
+
+local DAGGER = 15
 local SND_REFRESH = 2 -- refresh Slice and Dice when this close to falling off
 
+-- How each talent changes the rotation. Talents not listed here and not in
+-- PASSIVE are reported by /bw talents as "not used yet".
+Rogue.USED = {
+  ["Improved Slice and Dice"] = "Slice and Dice lasts 15% longer per rank (timer estimate)",
+  ["Mutilate"] = "Mutilate is the builder; finish at 4 combo points",
+  ["Cold Blood"] = "suggested before a finisher",
+  ["Hemorrhage"] = "Subtlety builder",
+  ["Ghostly Strike"] = "Subtlety builder when ready",
+  ["Premeditation"] = "suggested in stealth before your opener",
+  ["Preparation"] = "suggested when Vanish/Evasion/Sprint are all on cooldown",
+  ["Serrated Blades"] = "Rupture is kept up at full combo points",
+  ["Improved Ambush"] = "Ambush is the opener (with a dagger)",
+  ["Riposte"] = "used after a parry",
+  ["Blade Flurry"] = "suggested as a cooldown",
+  ["Adrenaline Rush"] = "suggested as a cooldown",
+}
+-- Classic talents that only add damage, crit, energy or avoidance: nothing to press differently.
+Rogue.PASSIVE = {
+  "Malice", "Remorseless Attacks", "Ruthlessness", "Murder", "Relentless Strikes", "Improved Expose Armor",
+  "Lethality", "Vile Poisons", "Improved Poisons", "Vigor", "Improved Kidney Shot", "Seal Fate",
+  "Improved Gouge", "Improved Eviscerate", "Improved Sinister Strike", "Lightning Reflexes", "Deflection",
+  "Precision", "Endurance", "Improved Sprint", "Improved Kick", "Dual Wield Specialization", "Weapon Expertise",
+  "Aggression", "Hack and Slash", "Camouflage", "Master of Deception", "Opportunity", "Setup", "Elusiveness",
+  "Initiative", "Improved Distract", "Heightened Senses", "Dirty Deeds",
+}
+
+function Rogue.DurationScale(name, talents)
+  if name == "Slice and Dice" then return 1 + 0.15 * (talents["Improved Slice and Dice"] or 0) end
+  return 1
+end
+
 local function known(s, name) return s.spells[name] ~= nil end
+local function talent(s, name) return (s.talents and s.talents[name] or 0) > 0 end
+local function dagger(s) return s.mainHand == DAGGER end
 
 -- Usable soon: known, off cooldown, and the game doesn't say it's unusable
 -- (wrong weapon, not behind...). Energy is handled by `wait`.
@@ -34,8 +75,14 @@ local function act(s, name, why)
 end
 
 local function opener(s, spec)
-  local order = spec == "combat" and { "Cheap Shot", "Garrote", "Ambush", "Sinister Strike" }
-    or { "Ambush", "Garrote", "Cheap Shot", "Sinister Strike" }
+  local order
+  if dagger(s) and spec ~= "combat" then
+    order = { "Ambush", "Garrote", "Cheap Shot", "Sinister Strike" }
+  elseif spec == "combat" then
+    order = { "Cheap Shot", "Garrote", "Sinister Strike" }
+  else
+    order = { "Garrote", "Cheap Shot", "Sinister Strike" } -- Ambush needs a dagger
+  end
   for _, name in ipairs(order) do
     if ready(s, name) then return act(s, name, "opener from stealth") end
   end
@@ -50,8 +97,9 @@ local function finisher(s, spec)
     return act(s, "Slice and Dice", snd and "Slice and Dice is about to fall off" or "Slice and Dice is down")
   end
   local full = (spec == "assassination" and known(s, "Mutilate")) and 4 or 5 -- Mutilate adds 2 at a time
-  if spec ~= "combat" and cp >= full and hp > 0.5 and not s.debuffs["Rupture"] and ready(s, "Rupture") then
-    return act(s, "Rupture", "long fight: bleed it")
+  local rupture = spec ~= "combat" or talent(s, "Serrated Blades")
+  if rupture and cp >= full and hp > 0.5 and not s.debuffs["Rupture"] and ready(s, "Rupture") then
+    return act(s, "Rupture", talent(s, "Serrated Blades") and "keep Rupture up (Serrated Blades)" or "long fight: bleed it")
   end
   if (cp >= full or (cp >= 3 and hp < 0.25)) and ready(s, "Eviscerate") then
     return act(s, "Eviscerate", cp >= full and "full combo points" or "target nearly dead")
@@ -60,26 +108,37 @@ end
 
 local function builder(s, spec)
   if ready(s, "Riposte") then return act(s, "Riposte", "after a parry") end
-  local order
-  if spec == "assassination" then
-    order = { "Mutilate", "Sinister Strike" }
-  elseif spec == "subtlety" then
-    order = { "Ghostly Strike", "Hemorrhage", "Sinister Strike" }
-  else
-    order = { "Sinister Strike" }
+  local order = {}
+  if spec == "assassination" then order[#order + 1] = "Mutilate" end
+  if spec == "subtlety" then
+    order[#order + 1] = "Ghostly Strike"
+    order[#order + 1] = "Hemorrhage"
   end
+  -- Backstab needs a main-hand dagger and being behind the target, which the
+  -- game doesn't tell addons: only when you've said so (/bw behind).
+  if dagger(s) and s.behind then order[#order + 1] = "Backstab" end
+  order[#order + 1] = "Sinister Strike"
   for _, name in ipairs(order) do
-    if ready(s, name) then return act(s, name, "build combo points") end
+    if ready(s, name) then
+      local why = name == "Backstab" and "build combo points (you're behind it)" or "build combo points"
+      return act(s, name, why)
+    end
   end
 end
 
 local function cooldown(s, spec)
+  if s.stealthed and s.cp == 0 and ready(s, "Premeditation") then
+    return { spell = "Premeditation", why = "before your opener" }
+  end
   if not s.inCombat then return nil end
   if spec == "combat" then
     if ready(s, "Adrenaline Rush") then return { spell = "Adrenaline Rush", why = "ready" } end
     if ready(s, "Blade Flurry") then return { spell = "Blade Flurry", why = "ready (best with two targets)" } end
   elseif spec == "assassination" then
     if s.cp >= 4 and ready(s, "Cold Blood") then return { spell = "Cold Blood", why = "before your finisher" } end
+  end
+  if ready(s, "Preparation") and known(s, "Vanish") and not ready(s, "Vanish") and not ready(s, "Evasion") then
+    return { spell = "Preparation", why = "resets Vanish, Evasion and Sprint" }
   end
 end
 

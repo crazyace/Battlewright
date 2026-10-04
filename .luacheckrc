@@ -12,4 +12,6 @@ read_globals = {
   "UnitClass", "UnitPower", "UnitPowerMax", "GetComboPoints", "UnitHealth", "UnitHealthMax",
   "UnitCanAttack", "UnitExists", "UnitAffectingCombat", "IsStealthed", "GetTime", "GetPowerRegen",
   "date", "tinsert", "UISpecialFrames", "ChatFontNormal", "UnitGUID",
+  "C_ClassTalents", "C_Traits", "C_Item", "GetNumTalentTabs", "GetNumTalents", "GetTalentInfo",
+  "InCombatLockdown", "GetInventoryItemID",
 }

@@ -35,6 +35,7 @@ local DEFAULTS = {
   point = { "CENTER", "CENTER", 0, -160 },
   specOverride = false, -- false = from your talents
   showOutOfCombat = false, -- also show with an attackable target out of combat
+  assumeBehind = false, -- suggest Backstab (the game doesn't say where you stand)
 }
 
 ns:On("ADDON_LOADED", function(name)

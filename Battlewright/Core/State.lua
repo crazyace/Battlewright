@@ -4,6 +4,9 @@
 --     buffs = { [name] = secondsLeft }, debuffs = { [name] = secondsLeft },   (mine on the target)
 --     spells = { [name] = { id, cost, cooldown (s left), usable, noPower } } }   (known spells only)
 --   estimated = true when buffs/debuffs come from Tracker.lua, not the game.
+--   talents = { [name] = rank } (read out of combat), mainHand = weapon subclass
+--   (15 = dagger) or nil, behind = true when you've told Battlewright to assume
+--   you're behind the target (/bw behind; the game doesn't say).
 --
 -- What Forever lets addons read in combat (BattlewrightProbe, 2026-10-03):
 -- combo points, cooldowns, costs, IsSpellUsable (incl. "not enough power"),
@@ -22,7 +25,8 @@ local function secret(v) return issecretvalue ~= nil and issecretvalue(v) == tru
 State.SPELLS = {
   ROGUE = { "Sinister Strike", "Eviscerate", "Slice and Dice", "Rupture", "Backstab", "Ambush",
     "Cheap Shot", "Garrote", "Mutilate", "Hemorrhage", "Ghostly Strike", "Riposte", "Kick",
-    "Blade Flurry", "Adrenaline Rush", "Cold Blood", "Premeditation", "Preparation", "Expose Armor" },
+    "Blade Flurry", "Adrenaline Rush", "Cold Blood", "Premeditation", "Preparation", "Expose Armor",
+    "Vanish", "Evasion", "Sprint" },
 }
 
 local function auras(unit, filter, now)
@@ -45,6 +49,22 @@ local function auras(unit, filter, now)
 end
 
 local spellIDs = {}
+
+-- Main-hand weapon subclass (Enum.ItemWeaponSubclass; 15 = dagger), cached.
+local mainHand, mainHandRead
+local function weapon()
+  if mainHandRead then return mainHand end
+  mainHandRead = true
+  local id = GetInventoryItemID and GetInventoryItemID("player", 16)
+  if id and C_Item and C_Item.GetItemInfoInstant then
+    local ok, _, _, _, _, _, classID, subclassID = pcall(C_Item.GetItemInfoInstant, id)
+    mainHand = ok and classID == 2 and subclassID or nil
+  else
+    mainHand = nil
+  end
+  return mainHand
+end
+ns:On("PLAYER_EQUIPMENT_CHANGED", function() mainHandRead = false end)
 
 local function spell(name, now)
   local id = spellIDs[name]
@@ -101,6 +121,9 @@ function State.Read()
     inCombat = UnitAffectingCombat and UnitAffectingCombat("player") == true or false,
     target = { exists = UnitExists("target") == true },
     spells = {},
+    talents = ns.Talents.Get().ranks,
+    mainHand = weapon(),
+    behind = ns.db and ns.db.assumeBehind or false,
   }
   if GetPowerRegen then
     local ok, _, active = pcall(GetPowerRegen)

@@ -63,6 +63,8 @@ C_Spell = {
   IsSpellUsable = function() if GAME.noPower then return false, true end return true, false end,
   GetSpellTexture = function(name) return "icon:" .. tostring(name) end,
 }
+function GetInventoryItemID(_, slot) if slot == 16 and GAME.mainHand then return 1 end end
+C_Item = { GetItemInfoInstant = function() return 1, "Weapon", "", "INVTYPE_WEAPON", 0, 2, GAME.mainHand end }
 C_UnitAuras = { GetAuraDataByIndex = function(unit, i)
   if GAME.blocked then error("GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted") end
   local list = unit == "player" and GAME.buffs or GAME.debuffs
@@ -119,11 +121,13 @@ L.execute("GAME.target = true")
 # Assassination (Mutilate known => talents say so): Mutilate builds; finish at 4.
 mut = {"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Mutilate": 60, "Rupture": 25, "Ambush": 60,
        "Garrote": 50, "Cheap Shot": 60}
-assert L.eval("function(ns) return ns.Spec.Detect('ROGUE', { Mutilate = {} }) end")(ns) == ("assassination", "talents")
+assert L.eval("function(ns) return ns.Spec.Detect('ROGUE', { Mutilate = {} }) end")(ns) == ("assassination", "spells")
 assert show(known=mut, cp=0, buffs=[["Slice and Dice", 130]]) == ("Mutilate", 0)
 assert show(cp=4, hp=0.4) == ("Eviscerate", 0)  # 4 is full with Mutilate; under 50% hp, no Rupture
 assert show(cp=4, hp=0.9) == ("Rupture", 0)     # long fight: Rupture first
-# From stealth: Ambush.
+# From stealth: Ambush needs a main-hand dagger; without one, Garrote.
+assert show(stealthed=True, cp=0) == ("Garrote", 0)
+L.execute("GAME.mainHand = 15"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
 assert show(stealthed=True, cp=0) == ("Ambush", 0)
 L.execute("GAME.stealthed = false")
 # /bw spec combat overrides the talents: Combat opens with Cheap Shot.
@@ -131,6 +135,62 @@ L.globals().SlashCmdList.BATTLEWRIGHT("spec combat")
 assert show(stealthed=True) == ("Cheap Shot", 0)
 L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("GAME.stealthed = false")
+
+# Talents (Forever's single Traits tree; the node's group says the spec):
+# 21 points in Assassination with Improved Slice and Dice 3 and Forever's Venom.
+L.execute("""
+NODES = {
+  { group = 11580, name = "Improved Slice and Dice", rank = 3 }, { group = 11580, name = "Malice", rank = 5 },
+  { group = 11580, name = "Venom", rank = 1, spellID = 1310703 }, { group = 11580, name = "Lethality", rank = 12 },
+  { group = 11573, name = "Precision", rank = 3 },
+}
+C_ClassTalents = { GetActiveConfigID = function() return 1 end }
+C_Traits = {
+  GetConfigInfo = function() return { treeIDs = { 1111 } } end,
+  GetTreeNodes = function() local o = {} for i in ipairs(NODES) do o[i] = i end return o end,
+  GetNodeInfo = function(_, id) local n = NODES[id] return { groupIDs = { n.group }, activeRank = n.rank, entryIDs = { id }, maxRanks = 5 } end,
+  GetEntryInfo = function(_, id) return { definitionID = id } end,
+  GetDefinitionInfo = function(id) return { overrideName = NODES[id].name, spellID = NODES[id].spellID } end,
+}
+C_Spell.GetSpellDescription = function(id) if id == 1310703 then return "Your finishing moves poison the target." end end
+""")
+L.globals().fire("PLAYER_TALENT_UPDATE")
+L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
+assert L.eval("function(ns) return ns.Spec.Detect('ROGUE', {}) end")(ns) == ("assassination", "talents")
+# Improved Slice and Dice 3: a 2-point Slice and Dice lasts 12 x 1.45 = 17.4 s.
+show(known=mut, cp=2, buffs=[], stealthed=False)
+snd_id = L.eval("function(ns) return ns.Display.Compute().state.spells['Slice and Dice'].id end")(ns)
+L.execute("GAME.blocked = true")
+show()
+L.globals().fire("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-2", snd_id)
+assert abs(L.eval("function(ns) return ns.Tracker.expires['Slice and Dice'] end")(ns) - 117.4) < 1e-9
+L.execute("GAME.blocked = false"); L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
+# /bw talents: what the rotation uses, what doesn't change it, and Forever talents it doesn't know yet.
+L.execute("printed = {}")
+L.globals().SlashCmdList.BATTLEWRIGHT("talents")
+out = "\n".join(L.globals().printed.values())
+print(out)
+assert "spec: assassination (talents)" in out and "Improved Slice and Dice 3: Slice and Dice lasts 15% longer" in out, out
+assert "no change to the rotation:|r Malice 5, Lethality 12" in out or "Malice 5" in out, out
+assert "not used yet|r  Venom 1: Your finishing moves poison the target." in out, out
+# Backstab: with a dagger and /bw behind, for a Combat Rogue (no Mutilate).
+L.globals().SlashCmdList.BATTLEWRIGHT("spec combat")
+assert show(known={"Sinister Strike": 45, "Backstab": 60, "Eviscerate": 35, "Slice and Dice": 25}, cp=0,
+            buffs=[["Slice and Dice", 130]]) == ("Sinister Strike", 0)
+L.globals().SlashCmdList.BATTLEWRIGHT("behind")
+assert show() == ("Backstab", 0)
+L.globals().SlashCmdList.BATTLEWRIGHT("behind")
+# Premeditation in stealth: suggested as a cooldown before the opener.
+L.globals().SlashCmdList.BATTLEWRIGHT("spec subtlety")
+pre = L.eval("""function(ns) GAME.stealthed = true
+  GAME.known = { ["Premeditation"] = 0, ["Ambush"] = 60, ["Sinister Strike"] = 45 }
+  fire("SPELLS_CHANGED") local v = ns.Display.Compute() GAME.stealthed = false
+  return v.main.spell, v.cooldown and v.cooldown.spell end""")(ns)
+assert tuple(pre) == ("Ambush", "Premeditation"), tuple(pre)
+L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
+L.execute("C_ClassTalents, C_Traits = nil, nil; GAME.mainHand = nil")
+L.eval("function(ns) ns.Talents.Clear() end")(ns)
+L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
 
 # The display: shown in combat with the spell's icon and why; hidden (alpha 0)
 # out of combat while locked.

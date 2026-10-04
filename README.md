@@ -21,19 +21,36 @@ your gear; Battlewright your fight).
 It shows in combat (and, with `/bw target`, when you target an enemy). If the game hides
 the combat data it needs, it says so instead of guessing.
 
-## Rogue priorities (first version)
+## Built from your character
 
-1. From stealth: Ambush, Garrote or Cheap Shot (Combat opens with Cheap Shot).
+Battlewright's rotation is its own (Forever has no built-in one-button assistant), and
+it's built from what you have:
+
+- **Spells and ranks** you know (the spellbook). A spell you haven't learned is never
+  suggested.
+- **Talents**, read out of combat: the spec comes from where your points are, and
+  talents change the rotation (see below). `/bw talents` lists which talents it uses,
+  which don't change what you press, and Forever talents it doesn't know yet, with
+  their in-game description, so they can be added.
+- **Your main-hand weapon:** Ambush and Backstab only with a dagger. The game doesn't
+  tell addons whether you're behind the target, so Backstab is suggested only after
+  `/bw behind` (e.g. in a group, when the tank holds aggro).
+
+## Rogue priorities
+
+1. In stealth: Premeditation first (as a cooldown) if talented, then Ambush (with a
+   dagger, Assassination/Subtlety), Garrote or Cheap Shot (Combat).
 2. Slice and Dice when it's down or about to fall off (2 s). In combat its timer is
-   estimated from your cast: 6 + 3 s per combo point.
-3. Rupture at full combo points on a target above 50% health (Assassination, Subtlety).
-4. Eviscerate at full combo points (4 with Mutilate, else 5), or 3+ on a target under 25%
-   (when its health is readable).
-5. Build: Riposte after a parry; Mutilate (Assassination), Ghostly Strike or Hemorrhage
-   (Subtlety), else Sinister Strike.
-
-The spec comes from your talents' spells (Mutilate, Hemorrhage, Blade Flurry...), or
-`/bw spec`.
+   estimated from your cast: 6 + 3 s per combo point, +15% per rank of Improved Slice
+   and Dice.
+3. Rupture at full combo points on a target above 50% health (Assassination,
+   Subtlety, or any spec with Serrated Blades).
+4. Eviscerate at full combo points (4 with Mutilate, else 5), or 3+ on a target under
+   25% (when its health is readable).
+5. Build: Riposte after a parry; Mutilate (Assassination), Ghostly Strike or
+   Hemorrhage (Subtlety), Backstab (dagger + `/bw behind`), else Sinister Strike.
+6. Cooldowns (small icon): Adrenaline Rush and Blade Flurry (Combat), Cold Blood
+   before a finisher (Assassination), Preparation once Vanish and Evasion are used.
 
 ## Commands
 
@@ -43,6 +60,8 @@ The spec comes from your talents' spells (Mutilate, Hemorrhage, Blade Flurry...)
 | `/bw scale 1.2` | Icon size (0.5-2) |
 | `/bw spec combat` | Play a spec regardless of talents (`auto` to go back) |
 | `/bw target` | Also show out of combat with an enemy targeted |
+| `/bw behind` | Assume you're behind the target: suggest Backstab with a dagger |
+| `/bw talents` | Your spec and talents, and how the rotation uses them |
 | `/bw on`, `/bw off` | Turn it on or off |
 | `/bw reset` | Put the icon back in the middle |
 
@@ -71,6 +90,7 @@ Battlewright/
   Core/Init.lua        event bus, settings
   Core/State.lua       reads energy, combo points, auras, cooldowns (secret-aware)
   Core/Tracker.lua     Slice and Dice / Rupture timers from your casts
+  Core/Talents.lua     your talents, read out of combat (Forever's Traits tree)
   Core/Spec.lua        which spec to play
   Rotations/Rogue.lua  the priorities: pure functions of a state table
   UI/Display.lua       the icon

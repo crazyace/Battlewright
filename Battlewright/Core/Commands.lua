@@ -7,8 +7,44 @@ local function help()
   print("  /bw scale <0.5-2>     icon size")
   print("  /bw spec <assassination|combat|subtlety|auto>")
   print("  /bw target            also show it out of combat when you target an enemy")
+  print("  /bw behind            assume you're behind the target (suggests Backstab with a dagger)")
+  print("  /bw talents           your spec and talents, and which ones the rotation uses")
   print("  /bw on | off          turn Battlewright on or off")
   print("  /bw reset             put the icon back in the middle")
+end
+
+-- /bw talents: what Battlewright knows about your build.
+local function talents()
+  local _, class = UnitClass("player")
+  local classData = ns.Rotations[class]
+  if not classData then return ns.print("no rotation for your class yet") end
+  local t = ns.Talents.Refresh() or ns.Talents.Get()
+  local s = ns.State.Read()
+  local spec, how = ns.Spec.Detect(class, s and s.spells or {})
+  ns.print("spec: %s (%s)", tostring(spec), how)
+  local passive = {}
+  for _, name in ipairs(classData.PASSIVE or {}) do passive[name] = true end
+  local used, other, unknown = {}, {}, {}
+  for _, e in ipairs(t.list) do
+    if e.rank > 0 then
+      if classData.USED and classData.USED[e.name] then
+        used[#used + 1] = ("%s %d: %s"):format(e.name, e.rank, classData.USED[e.name])
+      elseif passive[e.name] then
+        other[#other + 1] = ("%s %d"):format(e.name, e.rank)
+      else
+        unknown[#unknown + 1] = e
+      end
+    end
+  end
+  if #used == 0 and #other == 0 and #unknown == 0 then return ns.print("no talent points spent") end
+  for _, line in ipairs(used) do print("  |cff40ff40used|r  " .. line) end
+  if #other > 0 then print("  |cffaaaaaano change to the rotation:|r " .. table.concat(other, ", ")) end
+  for _, e in ipairs(unknown) do
+    local desc = e.spellID and C_Spell and C_Spell.GetSpellDescription and select(2, pcall(C_Spell.GetSpellDescription, e.spellID))
+    print(("  |cffff9900not used yet|r  %s %d%s"):format(e.name, e.rank,
+      type(desc) == "string" and desc ~= "" and (": " .. desc) or ""))
+  end
+  if #unknown > 0 then ns.print("send these descriptions over to teach Battlewright what they do") end
 end
 
 SLASH_BATTLEWRIGHT1 = "/bw"
@@ -28,6 +64,11 @@ SlashCmdList.BATTLEWRIGHT = function(msg)
   elseif cmd == "target" then
     db.showOutOfCombat = not db.showOutOfCombat
     ns.print("show out of combat with an enemy targeted: %s", db.showOutOfCombat and "on" or "off")
+  elseif cmd == "behind" then
+    db.assumeBehind = not db.assumeBehind
+    ns.print("assume you're behind the target (Backstab): %s", db.assumeBehind and "on" or "off")
+  elseif cmd == "talents" then
+    talents()
   elseif cmd == "on" or cmd == "off" then
     db.enabled = cmd == "on"
     ns.print(db.enabled and "on" or "off")

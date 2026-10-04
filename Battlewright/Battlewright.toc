@@ -7,6 +7,7 @@
 ## IconTexture: Interface\Icons\Ability_DualWield
 
 Core\Init.lua
+Core\Talents.lua
 Core\Tracker.lua
 Core\State.lua
 Core\Spec.lua

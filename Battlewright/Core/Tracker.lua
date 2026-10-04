@@ -3,7 +3,7 @@
 -- when secret while tainted", BattlewrightProbe 2026-10-03), so the rotation
 -- can't see these. Combo points are readable, though, so when you cast one,
 -- its duration is estimated from the combo points you had (Classic's
--- durations; talents that lengthen them aren't counted yet).
+-- durations), lengthened by talents the class file knows (Improved Slice and Dice).
 local _, ns = ...
 
 local Tracker = {}
@@ -27,7 +27,10 @@ function Tracker.Cast(spellID, now)
   local name = Tracker.names[spellID]
   local duration = name and Tracker.DURATION[name]
   if duration and Tracker.lastCP > 0 then
-    Tracker.expires[name] = now + duration(Tracker.lastCP)
+    local _, class = UnitClass("player")
+    local classData = ns.Rotations[class]
+    local scale = classData and classData.DurationScale and classData.DurationScale(name, ns.Talents.Get().ranks) or 1
+    Tracker.expires[name] = now + duration(Tracker.lastCP) * scale
   end
 end
 

@@ -1,5 +1,6 @@
--- Battlewright: which spec to play. From the talents' signature spells (a
--- talent that teaches a spell is in the spellbook), or the /bw spec override.
+-- Battlewright: which spec to play: the /bw spec override, else the talent
+-- tab with the most points, else a talent-taught signature spell, else the
+-- class's default (before level 10 nobody has talents).
 local _, ns = ...
 
 local Spec = {}
@@ -16,11 +17,20 @@ Spec.SIGNS = {
 }
 Spec.DEFAULT = { ROGUE = "combat" }
 
--- spec, how ("override" | "talents" | "default"), from a state's known spells.
+-- spec, how ("override" | "talents" | "spells" | "default").
 function Spec.Detect(class, spells)
   if ns.db and ns.db.specOverride then return ns.db.specOverride, "override" end
+  local classData = ns.Rotations[class]
+  local points = ns.Talents.Get().points
+  local best, most = nil, 0
+  for tab, n in pairs(points) do
+    if n > most then best, most = tab, n end
+  end
+  if best and classData and classData.tabToSpec and classData.tabToSpec[best] then
+    return classData.tabToSpec[best], "talents"
+  end
   for _, sign in ipairs(Spec.SIGNS[class] or {}) do
-    if spells[sign[1]] then return sign[2], "talents" end
+    if spells[sign[1]] then return sign[2], "spells" end
   end
   return Spec.DEFAULT[class], "default"
 end
