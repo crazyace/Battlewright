@@ -445,12 +445,9 @@ end
 -- The build picker, your tree with the build laid over it, then the plan.
 local NODE, NODE_GAP, TREE_HEAD = 30, 42, 20
 local TREE_NAMES = { "Assassination", "Combat", "Subtlety" }
-local STATUS = { -- border color and tooltip line
-  done = { { 0.25, 0.85, 0.30 }, "In this build: done" },
-  todo = { { 1.00, 0.80, 0.34 }, "In this build: still to take" },
-  next = { { 1.00, 1.00, 0.55 }, "Your next point" },
-  off = { { 0.85, 0.25, 0.20 }, "Not in this build" },
-  none = { { 0.35, 0.32, 0.28 }, nil },
+local STATUS = { -- border color: the build's talents, and the rest
+  build = { 1.00, 0.80, 0.34 },
+  none = { 0.35, 0.32, 0.28 },
 }
 
 local function buildButton(f, i)
@@ -540,21 +537,18 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
     end
   end
   if minY then
-    y = addHeader(tg.build.name .. " on your tree", y)
-    local target = rotation.BuildRanks(tg.build, 21)
-    local nextName = tg.plan and tg.plan.next and tg.plan.next.name
+    -- The whole build, drawn as if its points were spent: its talents lit with
+    -- the build's ranks, the rest greyed at 0. Your own points are in the plan below.
+    y = addHeader(tg.build.name .. ": the talent tree", y)
+    local target = rotation.BuildRanks(tg.build, #tg.build.order)
     local colWidth = INNER / 3
-    local have, want = {}, {}
-    for _, e in ipairs(list) do
-      have[e.tab] = (have[e.tab] or 0) + (e.rank or 0)
-      want[e.tab] = (want[e.tab] or 0) + (target[e.name] or 0)
-    end
+    local want = {}
+    for _, e in ipairs(list) do want[e.tab] = (want[e.tab] or 0) + (target[e.name] or 0) end
     for tab = 1, 3 do
       local h = treeHead(f, tab)
       h:ClearAllPoints()
       h:SetPoint("TOP", f.content, "TOPLEFT", (tab - 0.5) * colWidth, y)
-      h:SetText((want[tab] or 0) > 0 and ("%s  %d / %d"):format(TREE_NAMES[tab], have[tab] or 0, want[tab])
-        or ("%s  %d"):format(TREE_NAMES[tab], have[tab] or 0))
+      h:SetText(("%s  %d"):format(TREE_NAMES[tab], want[tab] or 0))
       h:Show()
     end
     local top, rows, n = y - TREE_HEAD, 0, 0
@@ -565,32 +559,22 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
         rows = math.max(rows, row + 1)
         n = n + 1
         local nd = node(f, n)
-        local rank, goal = e.rank or 0, target[e.name] or 0
-        local status = (e.name == nextName and "next") or (goal > 0 and (rank >= goal and "done" or "todo"))
-          or (rank > 0 and "off") or "none"
-        nd.status, nd.name, nd.spellID = status, e.name, e.spellID
-        nd.line = STATUS[status][2] and (goal > 0 and ("%s (this build: %d of %d ranks)"):format(STATUS[status][2], goal,
-          e.max or goal) or STATUS[status][2])
-        nd.icon:SetTexture(ns.Display.Texture(e.name, e.spellID))
-        -- Only the build's talents are lit: this is the build, not your current
-        -- tree. Talents you have that it doesn't use are greyed with a red edge.
+        local goal, max = target[e.name] or 0, e.max or target[e.name] or 0
         local lit = goal > 0
+        local status = lit and "build" or "none"
+        nd.status, nd.name, nd.spellID = status, e.name, e.spellID
+        nd.line = lit and ("In this build: %d of %d ranks"):format(goal, max) or "Not in this build"
+        nd.icon:SetTexture(ns.Display.Texture(e.name, e.spellID))
         nd.icon:SetDesaturated(not lit)
-        nd.icon:SetAlpha(lit and 1 or (status == "off" and 0.7 or 0.45))
+        nd.icon:SetAlpha(lit and 1 or 0.45)
         if nd.SetBackdropBorderColor then
-          local c = STATUS[status][1]
+          local c = STATUS[status]
           nd:SetBackdropColor(0.05, 0.04, 0.03, 0.9)
           nd:SetBackdropBorderColor(c[1], c[2], c[3], 1)
         end
-        -- The build's talents: your rank / the build's ranks. The rest: your
-        -- rank / max (red when you have points there the build doesn't use).
-        if lit then
-          nd.rank:SetText(("%d/%d"):format(rank, goal))
-          nd.rank:SetTextColor(1, 1, 1)
-        else
-          nd.rank:SetText(e.max and ("%d/%d"):format(rank, e.max) or (rank > 0 and tostring(rank) or ""))
-          nd.rank:SetTextColor(unpack(status == "off" and { 1, 0.35, 0.3 } or THEME.muted))
-        end
+        -- The build's ranks / the talent's max, like the game's talent window.
+        nd.rank:SetText(max > 0 and ("%d/%d"):format(goal, max) or "")
+        nd.rank:SetTextColor(unpack(lit and { 1, 0.82, 0 } or THEME.muted))
         nd.lit = lit
         local x0 = (e.tab - 1) * colWidth + (colWidth - 4 * NODE_GAP) / 2
         nd:ClearAllPoints()
@@ -599,9 +583,8 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
       end
     end
     y = top - rows * NODE_GAP - 2
-    y = addCard("Lit: the talents this build takes, numbered your rank / the build's ranks, with a green "
-      .. "border when done, gold still to take, bright for your next point. Greyed: not in this build; a red "
-      .. "edge means you have points there it doesn't use. Hover a talent for its text.", y)
+    y = addCard("The tree as this build fills it by level 30: its talents lit with their ranks, the rest "
+      .. "greyed. Your own points and what to take next are in the plan below. Hover a talent for its text.", y)
   end
 
   y = addHeader("The plan", y)

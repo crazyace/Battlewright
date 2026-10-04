@@ -16,6 +16,68 @@ ns.Rotations.ROGUE = Rogue
 Rogue.tabGroups = { [11580] = 1, [11573] = 2, [11572] = 3 }
 Rogue.tabToSpec = { [1] = "assassination", [2] = "combat", [3] = "subtlety" }
 
+-- Every talent on Forever's Rogue tree (class tree 1111) by node and spell ID,
+-- with its spec and the name the rotation uses: a node is matched by ID, so a
+-- talent the game renames (Restless Blades became Flawless Execution) keeps
+-- working. IDs from talentsforever.com's data for beta build 1.60.1.70170
+-- (2026-10-03). Talents not listed fall back to tabGroups and the game's name.
+Rogue.treeID = 1111
+Rogue.TALENTS = {
+  { tab = 1, node = 105742, spell = 13741, name = "Improved Gouge" },
+  { tab = 1, node = 105723, spell = 14144, name = "Remorseless Attacks" },
+  { tab = 1, node = 105722, spell = 14138, name = "Malice" },
+  { tab = 1, node = 105721, spell = 14156, name = "Ruthlessness" },
+  { tab = 1, node = 105720, spell = 14158, name = "Murder" },
+  { tab = 1, node = 105739, spell = 14165, name = "Improved Slice and Dice" },
+  { tab = 1, node = 105759, spell = 14179, name = "Relentless Strikes" },
+  { tab = 1, node = 105717, spell = 14168, name = "Improved Expose Armor" },
+  { tab = 1, node = 105716, spell = 14128, name = "Lethality" },
+  { tab = 1, node = 105714, spell = 16513, name = "Vile Poisons" },
+  { tab = 1, node = 105715, spell = 14177, name = "Cold Blood" },
+  { tab = 1, node = 105713, spell = 14113, name = "Improved Poisons" },
+  { tab = 1, node = 105718, spell = 14983, name = "Vigor" },
+  { tab = 1, node = 105709, spell = 1310707, name = "Mutilate" },
+  { tab = 1, node = 105711, spell = 14174, name = "Improved Kidney Shot" },
+  { tab = 1, node = 105710, spell = 14186, name = "Seal Fate" },
+  { tab = 1, node = 105712, spell = 1310703, name = "Venom" },
+  { tab = 2, node = 105708, spell = 14162, name = "Improved Eviscerate" },
+  { tab = 2, node = 105741, spell = 13732, name = "Improved Sinister Strike" },
+  { tab = 2, node = 113398, spell = 13712, name = "Lightning Reflexes" },
+  { tab = 2, node = 105719, spell = 1224716, name = "Puncturing Wounds" },
+  { tab = 2, node = 105738, spell = 13713, name = "Deflection" },
+  { tab = 2, node = 105737, spell = 13705, name = "Precision" },
+  { tab = 2, node = 105736, spell = 13742, name = "Endurance" },
+  { tab = 2, node = 105735, spell = 14251, name = "Riposte" },
+  { tab = 2, node = 105732, spell = 13743, name = "Improved Sprint" },
+  { tab = 2, node = 105733, spell = 13754, name = "Improved Kick" },
+  { tab = 2, node = 108100, spell = 1310711, name = "Flawless Execution" },
+  { tab = 2, node = 105740, spell = 13715, name = "Dual Wield Specialization" },
+  { tab = 2, node = 105728, spell = 13877, name = "Blade Flurry" },
+  { tab = 2, node = 105727, spell = 13960, name = "Hack and Slash" },
+  { tab = 2, node = 105726, spell = 30919, name = "Weapon Expertise" },
+  { tab = 2, node = 105730, spell = 18427, name = "Aggression" },
+  { tab = 2, node = 105724, spell = 13750, name = "Adrenaline Rush" },
+  { tab = 3, node = 105756, spell = 13975, name = "Camouflage" },
+  { tab = 3, node = 105761, spell = 13958, name = "Master of Deception" },
+  { tab = 3, node = 105760, spell = 14057, name = "Opportunity" },
+  { tab = 3, node = 105751, spell = 13983, name = "Setup" },
+  { tab = 3, node = 105753, spell = 13981, name = "Elusiveness" },
+  { tab = 3, node = 105757, spell = 1224782, name = "Dirty Tricks" },
+  { tab = 3, node = 105749, spell = 14079, name = "Improved Ambush" },
+  { tab = 3, node = 105755, spell = 13976, name = "Initiative" },
+  { tab = 3, node = 105754, spell = 14278, name = "Ghostly Strike" },
+  { tab = 3, node = 110868, spell = 14084, name = "Improved Distract" },
+  { tab = 3, node = 105747, spell = 30894, name = "Heightened Senses" },
+  { tab = 3, node = 105743, spell = 14183, name = "Premeditation" },
+  { tab = 3, node = 105752, spell = 14171, name = "Serrated Blades" },
+  { tab = 3, node = 105745, spell = 14082, name = "Dirty Deeds" },
+  { tab = 3, node = 105746, spell = 14185, name = "Preparation" },
+  { tab = 3, node = 105748, spell = 16511, name = "Hemorrhage" },
+  { tab = 3, node = 110867, spell = 1310728, name = "Quietus" },
+  { tab = 3, node = 105750, spell = 462708, name = "Cutthroat" },
+  { tab = 3, node = 110866, spell = 1310721, name = "Thousand Cuts" },
+}
+
 local DAGGER = 15
 local SND_REFRESH = 2 -- refresh Slice and Dice when this close to falling off
 
@@ -271,22 +333,28 @@ end
 
 -- The plan for `build` at `level`: the next point, what's still to come
 -- (grouped by talent), and the points you've spent that it doesn't use.
+-- Your points come from s.talentBudget (the game's count, or level - 9 plus the
+-- Legacy Talented perk); the build's points come that many levels sooner.
 function Rogue.TalentPlan(s, build, level)
   local have = s.talents or {}
-  local points = math.max(0, math.min(21, (level or 0) - 9))
-  local plan = { upcoming = {}, offPlan = {}, points = points, spent = 0 }
+  local budget = s.talentBudget
+  local bonus = budget and budget.bonus or 0
+  local points = budget and budget.total or math.max(0, (level or 0) - 9)
+  local plan = { upcoming = {}, offPlan = {}, points = points, spent = 0, bonus = bonus }
   for _, rank in pairs(have) do plan.spent = plan.spent + rank end
+  plan.unspent = budget and budget.source == "currency" and budget.unspent or math.max(0, points - plan.spent)
+  local function levelOf(i) return math.max(10, i + 9 - bonus) end
   local seen, inBuild = {}, {}
   for i, name in ipairs(build.order) do
     seen[name] = (seen[name] or 0) + 1
     inBuild[name] = seen[name]
     if (have[name] or 0) < seen[name] then -- not taken yet
-      plan.next = plan.next or { name = name, level = i + 9, now = i <= points }
+      plan.next = plan.next or { name = name, level = levelOf(i), now = i <= points }
       local last = plan.upcoming[#plan.upcoming]
       if last and last.name == name then
-        last.to, last.rank = i + 9, seen[name]
+        last.to, last.rank = levelOf(i), seen[name]
       else
-        plan.upcoming[#plan.upcoming + 1] = { name = name, from = i + 9, to = i + 9, rank = seen[name] }
+        plan.upcoming[#plan.upcoming + 1] = { name = name, from = levelOf(i), to = levelOf(i), rank = seen[name] }
       end
     end
   end
@@ -314,11 +382,12 @@ function Rogue.TalentGuide(s, mode, level, chosen)
   local function row(_, spell, text, id) tb.rows[#tb.rows + 1] = { spell = spell, id = id, text = text } end
   local function talentIcon(name) return s.talentIDs and s.talentIDs[name] end
   row(tb, nil, ("%s%s. %s"):format(best.name, reason and (": " .. reason) or "", best.why), best.icon)
-  if (level or 0) < 10 then
+  local budget = s.talentBudget
+  if (level or 0) < 10 and not (budget and budget.total > 0) then
     row(tb, nil, "Your first talent point comes at level 10.")
   else
     local plan = Rogue.TalentPlan(s, best, level)
-    local unspent = math.max(0, plan.points - plan.spent)
+    local unspent = plan.unspent
     if not plan.next then
       row(tb, nil, "You have the whole build.")
     elseif unspent > 0 then
@@ -352,7 +421,7 @@ function Rogue.TalentGuide(s, mode, level, chosen)
     end
   end
   tb.picks, tb.key, tb.build = picks, key, best
-  tb.plan = (level or 0) >= 10 and Rogue.TalentPlan(s, best, level) or nil
+  tb.plan = ((level or 0) >= 10 or (budget and budget.total > 0)) and Rogue.TalentPlan(s, best, level) or nil
   return tb
 end
 

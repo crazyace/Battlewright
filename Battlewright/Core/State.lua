@@ -6,7 +6,8 @@
 --   estimated = true when buffs/debuffs come from Tracker.lua, not the game.
 --   target.casting = { interruptible = bool } while the target casts or channels,
 --   inRange = false when out of melee range (nil = unknown),
---   talents = { [name] = rank } (read out of combat), mainHand = weapon subclass
+--   talents = { [name] = rank } (read out of combat), talentBudget = your talent points
+--   (Talents.Budget), mainHand = weapon subclass
 --   (15 = dagger) or nil, offHand likewise, behind = true when you've told Battlewright to assume
 --   you're behind the target (/bw behind; the game doesn't say).
 --
@@ -177,6 +178,7 @@ function State.Read()
     spells = {},
     talents = ns.Talents.Get().ranks,
     talentIDs = ns.Talents.Get().spellIDs, -- for icons (the guide)
+    talentBudget = ns.Talents.Get().budget, -- your talent points (the guide's plan)
     mainHand = weapon(),
     offHand = weaponIn(17),
     behind = ns.db and ns.db.assumeBehind or false,

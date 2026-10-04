@@ -23,6 +23,12 @@ local function talents()
   local s = ns.State.Read()
   local spec, how = ns.Spec.Detect(class, s and s.spells or {})
   ns.print("spec: %s (%s)", tostring(spec), how)
+  local b = t.budget
+  if b then
+    ns.print("talent points: %d (%d unspent)%s%s", b.total, b.unspent,
+      b.bonus > 0 and (", %d from the Legacy Talented perk"):format(b.bonus) or "",
+      b.source == "currency" and "" or ", counted from your level")
+  end
   local passive = {}
   for _, name in ipairs(classData.PASSIVE or {}) do passive[name] = true end
   local used, other, unknown = {}, {}, {}

@@ -207,6 +207,54 @@ pre = L.eval("""function(ns) GAME.stealthed = true
   fire("SPELLS_CHANGED") local v = ns.Display.Compute() GAME.stealthed = false
   return v.main.spell, v.cooldown and v.cooldown.spell end""")(ns)
 assert tuple(pre) == ("Ambush", "Premeditation"), tuple(pre)
+# Talents are matched by node or spell ID (from talentsforever.com's data), so a
+# talent the game renames keeps its name and spec: node 108100 is Flawless
+# Execution even when the game calls it Restless Blades and its group is unknown.
+L.execute("""
+NODES[7] = { group = 99999, name = "Restless Blades", rank = 1, nodeID = 108100 }
+local getNodes = C_Traits.GetTreeNodes
+C_Traits.GetTreeNodes = function(tree) if tree == 1111 then local o = getNodes() o[#o] = 108100 return o end end
+local getNode = C_Traits.GetNodeInfo
+C_Traits.GetNodeInfo = function(c, id) if id == 108100 then return getNode(c, 7) end return getNode(c, id) end
+""")
+t = L.eval("""function(ns) local t = ns.Talents.Refresh()
+  return t.ranks["Flawless Execution"], t.ranks["Restless Blades"], t.points[2], t.budget.total, t.budget.source end""")(ns)
+assert tuple(t) == (1, None, 4, 10, "level"), tuple(t)
+# Talent points: the Legacy Talented perk (tree 1188) adds a point per rank
+# when the game gives no count: level 19 with Talented 3 is 13 points.
+L.execute("""
+C_Traits.GetConfigInfo = function(id) return { treeIDs = id == 2 and { 1188 } or { 1111 } } end
+C_Traits.GetConfigIDBySystemID = function(sys) return sys == 3 and 2 or nil end
+local getNodes2, getNode2, getDef = C_Traits.GetTreeNodes, C_Traits.GetNodeInfo, C_Traits.GetDefinitionInfo
+C_Traits.GetTreeNodes = function(tree) if tree == 1188 then return { 500 } end return getNodes2(tree) end
+C_Traits.GetNodeInfo = function(c, id) if id == 500 then return { activeRank = 3, entryIDs = { 500 } } end return getNode2(c, id) end
+C_Traits.GetDefinitionInfo = function(id) if id == 500 then return { spellID = 1225474 } end return getDef(id) end
+""")
+b = L.eval("function(ns) local b = ns.Talents.Refresh().budget return b.total, b.bonus, b.source end")(ns)
+assert tuple(b) == (13, 3, "level"), tuple(b)
+# The game's own count wins: 2 unspent and 22 spent at level 19.
+L.execute("C_Traits.GetTreeCurrencyInfo = function(_, tree) if tree == 1111 then return { { quantity = 2, spent = 22 } } end end")
+b = L.eval("function(ns) local b = ns.Talents.Refresh().budget return b.total, b.unspent, b.bonus, b.source end")(ns)
+assert tuple(b) == (24, 2, 14, "currency"), tuple(b)
+L.execute("printed = {}")
+L.globals().SlashCmdList.BATTLEWRIGHT("talents")
+out = "\n".join(L.globals().printed.values())
+assert "talent points: 24 (2 unspent), 14 from the Legacy Talented perk" in out, out
+L.execute("C_Traits.GetTreeCurrencyInfo, C_Traits.GetConfigIDBySystemID = nil, nil")
+# Every talent the rotation and builds name is on the ID list (or a rename breaks it).
+missing = L.eval("""function(ns) local R, have, miss = ns.Rotations.ROGUE, {}, {}
+  for _, t in ipairs(R.TALENTS) do have[t.name] = true end
+  for name in pairs(R.USED) do if not have[name] then miss[#miss + 1] = name end end
+  for _, name in ipairs(R.PASSIVE) do if not have[name] then miss[#miss + 1] = name end end
+  for _, b in pairs(R.BUILDS) do for _, name in ipairs(b.order) do if not have[name] then miss[#miss + 1] = name end end end
+  return table.concat(miss, ", ") end""")(ns)
+assert missing == "", missing
+# A plan with 3 bonus points: the build's points come 3 levels sooner (never
+# before 10), and all 13 are unspent at level 19.
+plan = L.eval("""function(ns) local R = ns.Rotations.ROGUE
+  local p = R.TalentPlan({ talents = {}, talentBudget = { total = 13, bonus = 3, source = "level" } }, R.BUILDS.mutilate, 19)
+  return p.unspent, p.upcoming[1].name, p.upcoming[1].from, p.upcoming[1].to, p.upcoming[2].from end""")(ns)
+assert tuple(plan) == (13, "Malice", 10, 11, 12), tuple(plan)
 L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("C_ClassTalents, C_Traits = nil, nil; GAME.mainHand = nil")
 L.eval("function(ns) ns.Talents.Clear() end")(ns)
@@ -326,7 +374,7 @@ L.eval("function(ns) ns.Guide.SetBuild('combat') end")(ns)
 ttext = L.eval(talents_text)(ns)
 assert ttext.startswith("Combat: sturdy: if you'd rather not die") and "Best fit for you: Assassination: Mutilate" in ttext, ttext
 assert "Not in this build: Malice 5, Remorseless Attacks 2, Ruthlessness 3" in ttext, ttext
-# The tree: drawn from the nodes' positions, each node colored by its status.
+# The tree: drawn from the nodes' positions, as if the build's points were spent.
 L.eval("""function(ns) local get = ns.Talents.Get
   ns._sassy = get
   ns.Talents.Get = function() local r = get()
@@ -347,22 +395,26 @@ nodes = L.eval("""function(ns) local out = {}
   end
   return out end""")(ns)
 nodes = dict(nodes.items())
-# Malice 5 done; Ruthlessness/Remorseless not taken here, so Ruthlessness would be next,
-# but it isn't in the list: Lethality is the next one shown as "todo" until its turn.
-assert nodes["Malice"] == "done 5/5" and nodes["Improved Gouge"] == "off 2/3 grey", nodes
-assert nodes["Lethality"] == "todo 0/5" and nodes["Mutilate"] == "todo 0/1", nodes
+# The build's talents are lit with the build's ranks, whatever you have (no Lethality
+# yet, still 5/5); talents not in it are greyed at 0, even your Improved Gouge 2.
+assert nodes["Malice"] == "build 5/5" and nodes["Improved Gouge"] == "none 0/3 grey", nodes
+assert nodes["Lethality"] == "build 5/5" and nodes["Mutilate"] == "build 1/1", nodes
 assert nodes["Puncturing Wounds"] == "none 0/3 grey" and nodes["Camouflage"] == "none 0/5 grey", nodes
-# Looking at another build: your Malice isn't in it, so it's greyed (red edge), not lit.
+heads = L.eval("function(ns) local o = {} for i, h in ipairs(ns.Guide.frame.trees) do o[i] = h.text end return o end")(ns)
+# Each tree's heading: the build's points in it (of the talents drawn: Malice 5, Lethality 5, Mutilate 1).
+assert list(heads.values()) == ["Assassination  11", "Combat  0", "Subtlety  0"], list(heads.values())
+# Another build: your Malice isn't in it, so it's greyed at 0, nothing red.
 L.eval("function(ns) ns.Guide.SetBuild('combat') end")(ns)
 other = dict(L.eval("""function(ns) local out = {} for _, n in ipairs(ns.Guide.frame.nodes) do
   if n.shown ~= false then out[n.name] = n.status .. (n.icon.gray and " grey" or "") end end return out end""")(ns).items())
-assert other["Malice"] == "off grey" and other["Lethality"] == "none grey", other
+assert other["Malice"] == "none grey" and other["Lethality"] == "none grey", other
+assert other["Puncturing Wounds"] == "none grey", other
 L.eval("function(ns) ns.Guide.SetBuild(nil) end")(ns)
 # The subtitle is short enough to clear the tabs.
 assert L.eval("function(ns) return ns.Guide.frame.subtitle.text end")(ns) == "Assassination  -  level 19"
 # The tooltip line says what the build takes.
 line = L.eval("function(ns) for _, n in ipairs(ns.Guide.frame.nodes) do if n.name == 'Lethality' then return n.line end end end")(ns)
-assert line == "In this build: still to take (this build: 5 of 5 ranks)", line
+assert line == "In this build: 5 of 5 ranks", line
 # Layout: the build buttons, the tree and the cards under it don't overlap
 # (in game the cards were drawn over the tree).
 lay = L.eval("""function(ns) local f = ns.Guide.frame
@@ -372,7 +424,7 @@ lay = L.eval("""function(ns) local f = ns.Guide.frame
   local topNode
   for _, n in ipairs(f.nodes) do if n.shown then topNode = math.max(topNode or -math.huge, n.point[5]) end end
   for _, c in ipairs(f.lines) do
-    if c.text.text and c.text.text:find("^Lit: the talents this build takes") then legendTop = c.card.point[5] end
+    if c.text.text and c.text.text:find("^The tree as this build fills it") then legendTop = c.card.point[5] end
   end
   return lowestNode, buttonBottom, legendTop, topNode end""")(ns)
 lowest, buttons, legend, top_node = lay
