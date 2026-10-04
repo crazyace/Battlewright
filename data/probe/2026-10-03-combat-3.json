@@ -1,0 +1,410 @@
+{
+ "runs": [
+  {
+   "AuraUtil.FindAuraByName(Slice and Dice)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "C_AssistedCombat.GetNextCastSpell": {
+    "calls": 34,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "C_AssistedCombat.GetRotationSpells": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     []
+    ],
+    "found": 34,
+    "foundExample": [
+     []
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "C_AssistedCombat.IsAvailable": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     false,
+     "WRONG_WORLD_STATE_EXPRESSION"
+    ],
+    "found": 34,
+    "foundExample": [
+     false,
+     "WRONG_WORLD_STATE_EXPRESSION"
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "C_Spell.GetSpellCooldown": {
+    "calls": 306,
+    "errors": 0,
+    "example": [
+     {
+      "duration": 0,
+      "isActive": false,
+      "isEnabled": true,
+      "modRate": 1,
+      "startTime": 0
+     }
+    ],
+    "found": 306,
+    "foundExample": [
+     {
+      "duration": 0,
+      "isActive": false,
+      "isEnabled": true,
+      "modRate": 1,
+      "startTime": 0
+     }
+    ],
+    "missing": 0,
+    "readable": 306,
+    "secret": 0
+   },
+   "C_Spell.GetSpellPowerCost": {
+    "calls": 306,
+    "errors": 0,
+    "example": [
+     [
+      {
+       "cost": 45,
+       "costPerSec": 0,
+       "costPercent": 0,
+       "hasRequiredAura": false,
+       "minCost": 45,
+       "name": "ENERGY",
+       "requiredAuraID": 0,
+       "type": 3
+      }
+     ]
+    ],
+    "found": 306,
+    "foundExample": [
+     [
+      {
+       "cost": 45,
+       "costPerSec": 0,
+       "costPercent": 0,
+       "hasRequiredAura": false,
+       "minCost": 45,
+       "name": "ENERGY",
+       "requiredAuraID": 0,
+       "type": 3
+      }
+     ]
+    ],
+    "missing": 0,
+    "readable": 306,
+    "secret": 0
+   },
+   "C_Spell.IsSpellInRange(Sinister Strike)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     true
+    ],
+    "found": 34,
+    "foundExample": [
+     true
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "C_Spell.IsSpellUsable": {
+    "calls": 306,
+    "errors": 0,
+    "example": [
+     true,
+     false
+    ],
+    "found": 306,
+    "foundExample": [
+     true,
+     false
+    ],
+    "missing": 0,
+    "readable": 306,
+    "secret": 0
+   },
+   "C_UnitAuras.GetAuraDataBySpellName(player, Slice and Dice)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "C_UnitAuras.GetPlayerAuraBySpellID(Slice and Dice)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "GetComboPoints": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     0
+    ],
+    "found": 34,
+    "foundExample": [
+     0
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "GetPowerRegen": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     10.001000404358,
+     10.001000404358
+    ],
+    "found": 1,
+    "foundExample": [
+     10.001000404358,
+     10.001000404358
+    ],
+    "missing": 0,
+    "readable": 1,
+    "secret": 33
+   },
+   "GetTime": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     20852.958
+    ],
+    "found": 34,
+    "foundExample": [
+     20852.958
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "IsStealthed": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     false
+    ],
+    "found": 34,
+    "foundExample": [
+     false
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "UnitCanAttack(target)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     true
+    ],
+    "found": 34,
+    "foundExample": [
+     true
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "UnitCastingInfo(target)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 29,
+    "secret": 5
+   },
+   "UnitChannelInfo(target)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "UnitGUID(target)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     "Creature-0-6783-0-756-441-000041B434"
+    ],
+    "found": 34,
+    "foundExample": [
+     "Creature-0-6783-0-756-441-000041B434"
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "UnitHealth(target)": {
+    "calls": 34,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 34
+   },
+   "UnitHealthMax(target)": {
+    "calls": 34,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 34
+   },
+   "UnitHealthPercent(target)": {
+    "calls": 34,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 34
+   },
+   "UnitPower(combo points)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     0
+    ],
+    "found": 34,
+    "foundExample": [
+     0
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "UnitPower(energy)": {
+    "calls": 34,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 34
+   },
+   "UnitPowerMax(energy)": {
+    "calls": 34,
+    "errors": 0,
+    "example": [
+     105
+    ],
+    "found": 34,
+    "foundExample": [
+     105
+    ],
+    "missing": 0,
+    "readable": 34,
+    "secret": 0
+   },
+   "UnitPowerPercent(energy)": {
+    "calls": 34,
+    "errors": 0,
+    "missing": 0,
+    "readable": 0,
+    "secret": 34
+   },
+   "at": "2026-10-03 21:24:41",
+   "aura:player:HELPFUL": {
+    "calls": 34,
+    "error": "GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted by 'BattlewrightProbe'\nLua Taint: BattlewrightProbe",
+    "errors": 33,
+    "example": [],
+    "missing": 0,
+    "readable": 1,
+    "secret": 0
+   },
+   "aura:target:HARMFUL|PLAYER": {
+    "calls": 34,
+    "error": "GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted by 'BattlewrightProbe'\nLua Taint: BattlewrightProbe",
+    "errors": 33,
+    "example": [],
+    "missing": 0,
+    "readable": 1,
+    "secret": 0
+   },
+   "buffs": [],
+   "debuffs": [],
+   "event:PLAYER_TARGET_CHANGED": {
+    "calls": 1,
+    "errors": 0,
+    "example": [],
+    "missing": 0,
+    "readable": 1,
+    "secret": 0
+   },
+   "event:UNIT_AURA": {
+    "calls": 3,
+    "errors": 0,
+    "example": [
+     "player",
+     {
+      "addedAuras": "<secret>",
+      "isFullUpdate": "<secret>"
+     }
+    ],
+    "missing": 0,
+    "readable": 3,
+    "secret": 0
+   },
+   "event:UNIT_POWER_FREQUENT": {
+    "calls": 188,
+    "errors": 0,
+    "example": [
+     "player",
+     "ENERGY"
+    ],
+    "missing": 0,
+    "readable": 188,
+    "secret": 0
+   },
+   "event:UNIT_SPELLCAST_SUCCEEDED": {
+    "calls": 6,
+    "errors": 0,
+    "example": [
+     "player",
+     "Cast-3-6783-0-756-1758-000FC1B8E6",
+     1758
+    ],
+    "missing": 0,
+    "readable": 6,
+    "secret": 0
+   },
+   "eventsRegistered": {
+    "PLAYER_TARGET_CHANGED": true,
+    "UNIT_AURA": true,
+    "UNIT_POWER_FREQUENT": true,
+    "UNIT_SPELLCAST_SUCCEEDED": true
+   },
+   "known": {
+    "Backstab": 2589,
+    "Evasion": 5277,
+    "Eviscerate": 6761,
+    "Garrote": 703,
+    "Gouge": 1777,
+    "Kick": 1766,
+    "Sinister Strike": 1758,
+    "Slice and Dice": 5171,
+    "Sprint": 2983
+   },
+   "samples": 34
+  }
+ ],
+ "version": 1
+}

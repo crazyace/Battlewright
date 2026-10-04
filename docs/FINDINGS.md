@@ -46,8 +46,23 @@ What Battlewright does with it: Kick when the target casts something interruptib
 (shown big), "out of range" on the icon, Rupture timers kept per target GUID, and an
 aura lookup by spell ID used whenever it answers.
 
-## Round 3 (to run)
+## Round 3 (2026-10-03 21:24, 34 samples)
 
-Same checks; the probe now counts how often each lookup **found something**. Cast
-Slice and Dice during the fight to settle whether aura lookups by spell ID work in
-combat.
+Saved in `data/probe/2026-10-03-combat-3.json`.
+
+- **Aura lookups by spell ID or name don't work in combat either.**
+  `GetPlayerAuraBySpellID`, `GetAuraDataBySpellName` and `AuraUtil.FindAuraByName`
+  found nothing in all 34 samples, while `UNIT_AURA` reported an aura being added (its
+  details secret). They don't error; they come back empty. Battlewright's cast-based
+  tracker stays the source for Slice and Dice and Rupture.
+- **The target's cast:** `UnitCastingInfo(target)` was readable-and-empty while the mob
+  wasn't casting, and **secret in the 5 samples while it was**. So an addon can tell
+  *that* the target is casting, not what or whether it can be interrupted. Battlewright
+  now suggests Kick whenever the target casts, unless the game says it can't be
+  interrupted.
+- Everything else as in round 2.
+
+## Next round
+
+The probe now logs which spells you cast in each recorded fight (`you cast: ...` in
+the summary), to confirm what was up when the aura lookups came back empty.

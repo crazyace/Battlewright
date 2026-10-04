@@ -169,6 +169,9 @@ def summarize(db):
                 lines.append(f"   {name}: {state} ({rec.get('readable', 0)} readable, {rec.get('secret', 0)} secret, "
                              f"{rec.get('missing', 0)} missing, {rec.get('errors', 0)} errors{found})")
         lines.append(f"   known spells: {', '.join(sorted((run.get('known') or {}).keys())) or '-'}")
+        casts = run.get("casts") or {}
+        if casts:
+            lines.append("   you cast: " + ", ".join(f"{k} x{v}" for k, v in sorted(casts.items())))
         lines.append(f"   last buffs: {', '.join(map(str, run.get('buffs') or [])) or '-'}")
         lines.append(f"   last debuffs on target: {', '.join(map(str, run.get('debuffs') or [])) or '-'}")
         lines.append("   verdict: " + ("everything Battlewright reads was readable" if not secret

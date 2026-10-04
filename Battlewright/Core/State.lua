@@ -118,14 +118,18 @@ function State.AuraBySpellID(id, now)
   return math.huge
 end
 
--- The target's cast or channel: { interruptible } or nil.
+-- The target's cast or channel: { interruptible = true / false / nil (unknown) },
+-- or nil when it isn't casting. In combat on Forever the cast's details come
+-- back secret (BattlewrightProbe round 3), but a secret answer still means a
+-- cast is going on; only "nothing" (nil) means it isn't.
 function State.Casting()
   for _, fn in ipairs({ UnitCastingInfo, UnitChannelInfo }) do
     if fn then
       local r = { pcall(fn, "target") }
-      if r[1] and r[2] ~= nil and not secret(r[2]) then
+      if r[1] and r[2] ~= nil then
         local notInterruptible = fn == UnitCastingInfo and r[9] or r[8]
-        return { interruptible = not secret(notInterruptible) and notInterruptible ~= true }
+        if secret(notInterruptible) then return { interruptible = nil } end
+        return { interruptible = notInterruptible ~= true }
       end
     end
   end

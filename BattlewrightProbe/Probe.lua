@@ -156,6 +156,14 @@ local function noteEvent(out, event, ...)
   for i = 1, args.n do if isSecret(args[i]) then anySecret = true end end
   if anySecret then rec.secret = rec.secret + 1 else rec.readable = rec.readable + 1 end
   if rec.example == nil and not anySecret then rec.example = sanitize({ unpack(args, 1, math.min(args.n, 5)) }) end
+  -- Which spells you cast (by name), so a run shows e.g. that Slice and Dice was up.
+  if event == "UNIT_SPELLCAST_SUCCEEDED" and args[1] == "player" and not isSecret(args[3]) then
+    local id = args[3]
+    local name = C_Spell and C_Spell.GetSpellName and select(2, pcall(C_Spell.GetSpellName, id))
+    local key = (type(name) == "string" and not isSecret(name)) and name or tostring(id)
+    out.casts = out.casts or {}
+    out.casts[key] = (out.casts[key] or 0) + 1
+  end
 end
 
 local function combatStart()

@@ -128,9 +128,11 @@ local function builder(s, spec)
 end
 
 local function cooldown(s, spec)
+  -- Kick unless the game says the cast can't be interrupted (in combat it
+  -- usually can't say: the cast's details are secret).
   local cast = s.target.casting
-  if cast and cast.interruptible and ready(s, "Kick") then
-    return { spell = "Kick", why = "interrupt the cast", urgent = true }
+  if cast and cast.interruptible ~= false and ready(s, "Kick") then
+    return { spell = "Kick", why = cast.interruptible and "interrupt the cast" or "the target is casting", urgent = true }
   end
   if s.stealthed and s.cp == 0 and ready(s, "Premeditation") then
     return { spell = "Premeditation", why = "before your opener" }

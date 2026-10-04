@@ -241,6 +241,9 @@ L.execute("GAME.casting = 'yes'")
 assert tuple(full())[:2] == ("Sinister Strike", "Kick"), tuple(full())
 L.execute("GAME.casting = 'uninterruptible'")
 assert tuple(full())[1] is None
+# In combat the cast's details are secret, but a cast is still going on: Kick.
+L.execute("function UnitCastingInfo() if GAME.casting then return SECRET, SECRET, SECRET, SECRET, SECRET, SECRET, SECRET, SECRET, SECRET end end; GAME.casting = 'secret'")
+assert tuple(full())[1] == "Kick", tuple(full())
 L.execute("GAME.casting = nil; GAME.inRange = false")
 # Out of melee range: the icon says so.
 assert tuple(full()) == ("Sinister Strike", None, True), tuple(full())
