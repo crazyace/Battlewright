@@ -48,6 +48,7 @@ Rogue.PASSIVE = {
 
 function Rogue.DurationScale(name, talents)
   if name == "Slice and Dice" then return 1 + 0.15 * (talents["Improved Slice and Dice"] or 0) end
+  if name == "Gouge" then return 1 + 0.125 * (talents["Improved Gouge"] or 0) end -- +0.5 s a rank
   return 1
 end
 
@@ -123,12 +124,15 @@ local function builder(s, spec)
     order[#order + 1] = "Hemorrhage"
   end
   -- Backstab needs a main-hand dagger and being behind the target, which the
-  -- game doesn't tell addons: only when you've said so (/bw behind).
-  if dagger(s) and s.behind then order[#order + 1] = "Backstab" end
+  -- game doesn't tell addons: only when you've said so (/bw behind), or while
+  -- your Gouge holds it (step behind it and Backstab).
+  local gouged = s.debuffs["Gouge"] ~= nil
+  if dagger(s) and (s.behind or gouged) then table.insert(order, 1, "Backstab") end
   order[#order + 1] = "Sinister Strike"
   for _, name in ipairs(order) do
     if ready(s, name) then
-      local why = name == "Backstab" and "build combo points (you're behind it)" or "build combo points"
+      local why = name == "Backstab" and (gouged and "Gouged: step behind it" or "build combo points (you're behind it)")
+        or "build combo points"
       return act(s, name, why)
     end
   end

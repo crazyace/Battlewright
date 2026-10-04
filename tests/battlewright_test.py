@@ -282,6 +282,29 @@ L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("GAME.sndAura = nil; GAME.blocked = false; GAME.energySecret = false; GAME.guid = nil; issecretvalue = nil")
 L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
 
+# Gouge sets up Backstab (dagger): step behind it. Any hit ends the Gouge.
+L.execute("GAME.blocked = true; GAME.mainHand = 15; GAME.guid = 'Creature-G'"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
+gk = {"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Backstab": 60, "Gouge": 45}
+assert show(known=gk, cp=1) == ("Slice and Dice", 0)
+def cast(name):
+    sid = L.eval("function(ns, n) return ns.Display.Compute().state.spells[n].id end")(ns, name)
+    L.globals().fire("UNIT_SPELLCAST_SUCCEEDED", "player", "c", sid)
+def why():
+    return L.eval("function(ns) local m = ns.Display.Compute().main return m.spell, m.why end")(ns)
+L.execute("GAME.cp = 1")
+L.eval("function(ns) ns.Tracker.expires['Slice and Dice'] = GAME.now + 20 end")(ns)
+assert tuple(why()) == ("Sinister Strike", "build combo points"), tuple(why())
+cast("Gouge")
+assert tuple(why()) == ("Backstab", "Gouged: step behind it"), tuple(why())
+cast("Backstab")
+assert tuple(why())[0] == "Sinister Strike"
+# Gouge wears off after 4 s (no Improved Gouge).
+cast("Gouge"); L.execute("GAME.now = GAME.now + 4.5")
+assert tuple(why())[0] == "Sinister Strike"
+L.execute("GAME.blocked = false; GAME.mainHand = nil; GAME.guid = nil; GAME.now = 100; GAME.cp = 0")
+L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
+L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
+
 # BattlewrightProbe ------------------------------------------------------------------
 # /bwp combat records the next fight: twice a second for up to 30 s, which calls
 # come back readable or secret. Here aura timers are secret.

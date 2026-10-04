@@ -1,4 +1,4 @@
--- Battlewright: Slice and Dice and Rupture timers, from your own casts.
+-- Battlewright: Slice and Dice, Rupture and Gouge timers, from your own casts.
 -- On Forever, addons can't read auras in combat ("Auras cannot be accessed
 -- when secret while tainted", BattlewrightProbe 2026-10-03), so the rotation
 -- can't see these. Combo points are readable, though, so when you cast one,
@@ -13,8 +13,14 @@ ns.Tracker = Tracker
 Tracker.DURATION = {
   ["Slice and Dice"] = function(cp) return 6 + 3 * cp end, -- 9 / 12 / 15 / 18 / 21
   ["Rupture"] = function(cp) return 6 + 2 * cp end,        -- 8 / 10 / 12 / 14 / 16
+  ["Gouge"] = function() return 4 end,
 }
-local ON_TARGET = { ["Rupture"] = true } -- debuffs: kept per target (its GUID is readable)
+local ON_TARGET = { ["Rupture"] = true, ["Gouge"] = true } -- debuffs: kept per target (its GUID is readable)
+local NO_CP = { ["Gouge"] = true } -- not a finisher: no combo points needed
+-- Your casts that don't hit the target, so don't break its Gouge.
+local HARMLESS = { ["Slice and Dice"] = true, ["Gouge"] = true, ["Sprint"] = true, ["Evasion"] = true,
+  ["Vanish"] = true, ["Cold Blood"] = true, ["Adrenaline Rush"] = true, ["Blade Flurry"] = true,
+  ["Premeditation"] = true, ["Preparation"] = true }
 
 Tracker.lastCP = 0      -- combo points at the last state read (before a finisher spends them)
 Tracker.expires = {}    -- [name] or [name .. "@" .. target GUID] = GetTime() when it runs out
@@ -34,11 +40,14 @@ local function key(name)
   return g and (name .. "@" .. g) or name
 end
 
+function Tracker.IsDebuff(name) return ON_TARGET[name] == true end
+
 function Tracker.Cast(spellID, now)
   if secret(spellID) then return end
   local name = Tracker.names[spellID]
+  if name and not HARMLESS[name] then Tracker.expires[key("Gouge")] = nil end -- any hit wakes it up
   local duration = name and Tracker.DURATION[name]
-  if duration and Tracker.lastCP > 0 then
+  if duration and (Tracker.lastCP > 0 or NO_CP[name]) then
     local _, class = UnitClass("player")
     local classData = ns.Rotations[class]
     local scale = classData and classData.DurationScale and classData.DurationScale(name, ns.Talents.Get().ranks) or 1

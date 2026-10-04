@@ -36,7 +36,8 @@ it's built from what you have:
   their in-game description, so they can be added.
 - **Your main-hand weapon:** Ambush and Backstab only with a dagger. The game doesn't
   tell addons whether you're behind the target, so Backstab is suggested only after
-  `/bw behind` (e.g. in a group, when the tank holds aggro).
+  `/bw behind` (e.g. in a group, when the tank holds aggro), or while your Gouge
+  holds the target (step behind it and Backstab). Any other hit ends the Gouge.
 
 ## Rogue priorities
 
@@ -50,7 +51,7 @@ it's built from what you have:
 4. Eviscerate at full combo points (4 with Mutilate, else 5), or 3+ on a target under
    25% (when its health is readable).
 5. Build: Riposte after a parry; Mutilate (Assassination), Ghostly Strike or
-   Hemorrhage (Subtlety), Backstab (dagger + `/bw behind`), else Sinister Strike.
+   Hemorrhage (Subtlety), Backstab (dagger + `/bw behind`, or after your Gouge), else Sinister Strike.
 6. Cooldowns (small icon): Kick when the target casts (shown big; the game hides it
    for casts that can't be interrupted), Adrenaline Rush and Blade Flurry (Combat), Cold Blood before a finisher
    (Assassination), Preparation once Vanish and Evasion are used.

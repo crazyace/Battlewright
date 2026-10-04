@@ -30,7 +30,7 @@ State.SPELLS = {
   ROGUE = { "Sinister Strike", "Eviscerate", "Slice and Dice", "Rupture", "Backstab", "Ambush",
     "Cheap Shot", "Garrote", "Mutilate", "Hemorrhage", "Ghostly Strike", "Riposte", "Kick",
     "Blade Flurry", "Adrenaline Rush", "Cold Blood", "Premeditation", "Preparation", "Expose Armor",
-    "Vanish", "Evasion", "Sprint" },
+    "Vanish", "Evasion", "Sprint", "Gouge" },
 }
 
 local function auras(unit, filter, now)
@@ -197,7 +197,7 @@ function State.Read()
   if not s.buffs then
     s.buffs, s.estimated = ns.Tracker.Remaining(false, now), true
     for name in pairs(ns.Tracker.DURATION) do
-      local id = s.spells[name] and s.spells[name].id
+      local id = not ns.Tracker.IsDebuff(name) and s.spells[name] and s.spells[name].id
       local left = id and State.AuraBySpellID(id, now)
       if left then s.buffs[name] = left end
     end
