@@ -111,6 +111,7 @@ Battlewright/
   Core/Spec.lua        which spec to play
   Rotations/Rogue.lua  the priorities: pure functions of a state table
   UI/Display.lua       the icon
+  UI/Guide.lua         the rotation guide window (/bw guide)
   Core/Commands.lua    /bw
 BattlewrightProbe/            dev-only: what can an addon read in combat? (/bwp)
 tools/probe_summary.py       summarises its recordings
@@ -119,6 +120,11 @@ tests/battlewright_test.py   runs both addons against a mocked WoW API
 
 Tests: `pip install "lupa>=2.0"`, then `python tests/battlewright_test.py`.
 Lint: `luacheck .`
+
+## Credits
+
+The guide window's look (stone frame, gold title band, tooltip-edged cards in warm
+brown and gold over parchment) follows **ForeverDungeonJournal** by Exehn.
 
 ## License
 
