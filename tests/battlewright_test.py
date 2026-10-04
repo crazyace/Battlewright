@@ -317,6 +317,16 @@ cast("Gouge")
 assert tuple(why()) == ("Backstab", "Gouged: step behind it"), tuple(why())
 cast("Backstab")
 assert tuple(why())[0] == "Sinister Strike"
+# Slice and Dice down: the Gouge's 1 combo point would ask for Slice and Dice,
+# but the Gouge window comes first (beta, 2026-10-04: no Backstab was shown).
+L.eval("function(ns) ns.Tracker.expires['Slice and Dice'] = nil end")(ns)
+L.execute("GAME.cp = 0")
+assert tuple(why())[0] == "Sinister Strike", tuple(why())
+cast("Gouge"); L.execute("GAME.cp = 1")
+assert tuple(why()) == ("Backstab", "Gouged: step behind it"), tuple(why())
+cast("Backstab"); L.execute("GAME.cp = 2")
+assert tuple(why())[0] == "Slice and Dice", tuple(why())
+L.eval("function(ns) ns.Tracker.expires['Slice and Dice'] = GAME.now + 20 end")(ns)
 # Gouge wears off after 4 s (no Improved Gouge).
 cast("Gouge"); L.execute("GAME.now = GAME.now + 4.5")
 assert tuple(why())[0] == "Sinister Strike"

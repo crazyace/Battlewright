@@ -186,10 +186,21 @@ local function cooldown(s, spec)
   end
 end
 
+-- While your Gouge holds the target: the attack it set up (Backstab with a
+-- dagger, or Mutilate) comes before Slice and Dice, which can wait the few
+-- seconds; the Gouge can't. A full-combo-point finisher still comes first.
+local function gougeWindow(s, spec)
+  if not s.debuffs["Gouge"] then return nil end
+  local full = (spec == "assassination" and known(s, "Mutilate")) and 4 or 5
+  if s.cp >= full then return nil end
+  if not ((dagger(s) and ready(s, "Backstab")) or ready(s, "Mutilate")) then return nil end
+  return builder(s, spec)
+end
+
 -- The next ability for `spec`, or nil when there's nothing to attack.
 function Rogue.Next(s, spec)
   if not (s.target.exists and s.target.attackable) then return nil end
-  local main = (s.stealthed and opener(s, spec)) or finisher(s, spec) or builder(s, spec)
+  local main = (s.stealthed and opener(s, spec)) or gougeWindow(s, spec) or finisher(s, spec) or builder(s, spec)
   if main and s.inRange == false then main.outOfRange = true end
   return main, cooldown(s, spec)
 end
