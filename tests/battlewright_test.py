@@ -260,6 +260,11 @@ kick = L.eval("""function(ns) GAME.combat = true ns.Display.Update() local f = n
   local fb = rawget(f.cd, "fromBoolean") or {}
   return fb[1] == SECRET, fb[2], fb[3], rawget(f.energy, "value") == SECRET end""")(ns)
 assert tuple(kick) == (True, 0, 1, True), tuple(kick)
+# Kick's icon comes by spell ID when a lookup by name finds nothing (beta: a "?").
+L.execute("GAME.casting = 'yes'; _tex = C_Spell.GetSpellTexture; C_Spell.GetSpellTexture = function(k) if type(k) == 'number' then return 'icon:id' .. k end end")
+icon = L.eval("function(ns) ns.Display.Update() return rawget(ns.Display.frame.cd.icon, 'tex') end")(ns)
+assert icon and icon.startswith("icon:id"), icon
+L.execute("C_Spell.GetSpellTexture = _tex")
 L.execute("GAME.casting = nil; GAME.inRange = false")
 # Out of melee range: the icon says so.
 

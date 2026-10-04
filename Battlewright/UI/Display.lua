@@ -16,12 +16,22 @@ ns.Display = Display
 local SIZE, SMALL = 52, 30
 local QUESTION = "Interface\\Icons\\INV_Misc_QuestionMark"
 
-local function texture(name)
+-- The spell's icon: by spell ID first (a lookup by name can miss; Kick showed
+-- a question mark on the beta, 2026-10-04), then by name.
+local icons = {} -- [name] = last icon found
+local function texture(name, id)
   if C_Spell and C_Spell.GetSpellTexture then
-    local ok, tex = pcall(C_Spell.GetSpellTexture, name)
-    if ok and tex then return tex end
+    for _, key in ipairs({ id or false, name }) do
+      if key then
+        local ok, tex = pcall(C_Spell.GetSpellTexture, key)
+        if ok and tex and not (issecretvalue and issecretvalue(tex)) then
+          icons[name] = tex
+          return tex
+        end
+      end
+    end
   end
-  return QUESTION
+  return icons[name] or QUESTION
 end
 
 function Display.Create()
@@ -86,6 +96,9 @@ function Display.Compute()
   end
   local spec = ns.Spec.Detect(class, s.spells)
   local main, cd = rotation.Next(s, spec)
+  for _, v in ipairs({ main or false, cd or false }) do
+    if v and s.spells[v.spell] then v.id = s.spells[v.spell].id end
+  end
   return { main = main, cooldown = cd, spec = spec, state = s }
 end
 
@@ -127,7 +140,7 @@ function Display.Update()
   Display.view = view -- read by tests
   local m = view.main
   if m then
-    f.icon:SetTexture(texture(m.spell))
+    f.icon:SetTexture(texture(m.spell, m.id))
     f.icon:SetDesaturated(m.short == true)
     if f.icon.SetVertexColor then
       if m.outOfRange then f.icon:SetVertexColor(1, 0.35, 0.35) else f.icon:SetVertexColor(1, 1, 1) end
@@ -141,7 +154,7 @@ function Display.Update()
     f.why:SetText(view.message or (not ns.db.locked and "Battlewright (drag me, /bw lock)") or "")
   end
   if view.cooldown then
-    f.cd.icon:SetTexture(texture(view.cooldown.spell))
+    f.cd.icon:SetTexture(texture(view.cooldown.spell, view.cooldown.id))
     -- An interrupt is urgent: make it as big as the main icon.
     f.cd:SetSize(view.cooldown.urgent and SIZE or SMALL, view.cooldown.urgent and SIZE or SMALL)
     kickVisibility(view.cooldown, f.cd)
