@@ -1,11 +1,16 @@
 -- Battlewright: a snapshot of what the rotation needs, read from the game.
---   { now, energy, energyMax, regen, cp, stealthed, inCombat,
+--   { now, energy (nil when hidden), energyMax, regen, cp, stealthed, inCombat,
 --     target = { exists, attackable, hp (0-1) },
 --     buffs = { [name] = secondsLeft }, debuffs = { [name] = secondsLeft },   (mine on the target)
---     spells = { [name] = { id, cost, cooldown (s left), usable } } }   (known spells only)
--- Returns nil, "secret" when the client hides a value the rotation can't do
--- without (Forever has issecretvalue; some combat data may be secret), and
--- nil, "no-api" when a call it needs is missing.
+--     spells = { [name] = { id, cost, cooldown (s left), usable, noPower } } }   (known spells only)
+--   estimated = true when buffs/debuffs come from Tracker.lua, not the game.
+--
+-- What Forever lets addons read in combat (BattlewrightProbe, 2026-10-03):
+-- combo points, cooldowns, costs, IsSpellUsable (incl. "not enough power"),
+-- stealth: yes. Energy and target health: secret. Auras: blocked. So energy
+-- and target health may be nil, and buffs/debuffs fall back to Tracker.lua.
+-- Returns nil, "secret" only when combo points are hidden (no rotation without
+-- them), and nil, "no-api" when a call it needs is missing.
 local _, ns = ...
 
 local State = {}
@@ -26,7 +31,8 @@ local function auras(unit, filter, now)
   if not get then return out end
   for i = 1, 40 do
     local ok, a = pcall(get, unit, i, filter)
-    if not ok or type(a) ~= "table" then break end
+    if not ok then return nil end -- blocked (in combat on Forever)
+    if type(a) ~= "table" then break end
     if secret(a.name) then return nil end
     local left = math.huge
     if not secret(a.expirationTime) and type(a.expirationTime) == "number" and a.expirationTime > 0 then
@@ -48,7 +54,8 @@ local function spell(name, now)
     spellIDs[name] = id
   end
   if not id then return nil end
-  local s = { id = id, cost = 0, cooldown = 0, usable = true }
+  ns.Tracker.names[id] = name
+  local s = { id = id, cost = 0, cooldown = 0, usable = true, noPower = false }
   if C_Spell.GetSpellPowerCost then
     local ok, costs = pcall(C_Spell.GetSpellPowerCost, id)
     if ok and type(costs) == "table" and costs[1] and not secret(costs[1].cost) then s.cost = costs[1].cost or 0 end
@@ -63,7 +70,10 @@ local function spell(name, now)
   end
   if C_Spell.IsSpellUsable then
     local ok, usable, noPower = pcall(C_Spell.IsSpellUsable, id)
-    if ok and not secret(usable) then s.usable = usable == true or noPower == true end
+    if ok and not secret(usable) then
+      s.usable = usable == true or noPower == true
+      s.noPower = not secret(noPower) and noPower == true
+    end
   end
   return s
 end
@@ -81,9 +91,12 @@ function State.Read()
   local energy, energyMax = UnitPower("player", energyType), UnitPowerMax("player", energyType)
   local cp = UnitPower("player", cpType)
   if (not cp or cp == 0) and GetComboPoints then cp = GetComboPoints("player", "target") end
-  if secret(energy) or secret(cp) or secret(energyMax) then return nil, "secret" end
+  if secret(cp) then return nil, "secret" end
+  if secret(energy) then energy = nil end -- hidden in combat on Forever
+  if secret(energyMax) then energyMax = nil end
+  ns.Tracker.lastCP = cp or 0
   local s = {
-    now = now, energy = energy or 0, energyMax = energyMax or 100, cp = cp or 0, regen = 10,
+    now = now, energy = energy, energyMax = energyMax or 100, cp = cp or 0, regen = 10,
     stealthed = IsStealthed and IsStealthed() == true or false,
     inCombat = UnitAffectingCombat and UnitAffectingCombat("player") == true or false,
     target = { exists = UnitExists("target") == true },
@@ -100,7 +113,9 @@ function State.Read()
   end
   s.buffs = auras("player", "HELPFUL", now)
   s.debuffs = s.target.exists and auras("target", "HARMFUL|PLAYER", now) or {}
-  if not s.buffs or not s.debuffs then return nil, "secret" end
+  -- Auras blocked: use what our own casts say instead.
+  if not s.buffs then s.buffs, s.estimated = ns.Tracker.Remaining(false, now), true end
+  if not s.debuffs then s.debuffs, s.estimated = ns.Tracker.Remaining(true, now), true end
   local _, class = UnitClass("player")
   for _, name in ipairs(State.SPELLS[class] or {}) do s.spells[name] = spell(name, now) end
   return s

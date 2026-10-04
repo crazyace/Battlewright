@@ -4,13 +4,16 @@ What to press next: a rotation helper for **World of Warcraft: Forever**, and
 the sibling of [Gearwright](https://github.com/crazyace/Gearwright) (Gearwright sorts out
 your gear; Battlewright your fight).
 
-> Status: **first draft, untested in game.** Rogue only (Assassination, Combat,
-> Subtlety). Whether it can work on Forever at all depends on what the game lets
-> addons read in combat: run `/bwp combat` with BattlewrightProbe first (below).
+> Status: **first draft.** Rogue only (Assassination, Combat, Subtlety). In combat,
+> Forever hides energy and target health from addons and blocks aura reads
+> ([docs/FINDINGS.md](docs/FINDINGS.md)); Battlewright works around it: combo points,
+> cooldowns and "not enough energy" are readable, and Slice and Dice / Rupture are
+> tracked from your own casts.
 
 ## What it shows
 
-- A big icon: the next ability. Greyed out with a countdown while you wait for energy.
+- A big icon: the next ability. Greyed out while there isn't enough energy (with a
+  countdown out of combat; Forever hides energy in combat).
 - A small icon beside it: a cooldown worth using now (Adrenaline Rush, Blade Flurry,
   Cold Blood).
 - A line under it saying why ("Slice and Dice is down", "full combo points").
@@ -21,9 +24,11 @@ the combat data it needs, it says so instead of guessing.
 ## Rogue priorities (first version)
 
 1. From stealth: Ambush, Garrote or Cheap Shot (Combat opens with Cheap Shot).
-2. Slice and Dice when it's down or about to fall off (2 s).
+2. Slice and Dice when it's down or about to fall off (2 s). In combat its timer is
+   estimated from your cast: 6 + 3 s per combo point.
 3. Rupture at full combo points on a target above 50% health (Assassination, Subtlety).
-4. Eviscerate at full combo points (4 with Mutilate, else 5), or 3+ on a target under 25%.
+4. Eviscerate at full combo points (4 with Mutilate, else 5), or 3+ on a target under 25%
+   (when its health is readable).
 5. Build: Riposte after a parry; Mutilate (Assassination), Ghostly Strike or Hemorrhage
    (Subtlety), else Sinister Strike.
 
@@ -65,6 +70,7 @@ The last 5 recordings are kept; `/bwp clear` empties them.
 Battlewright/
   Core/Init.lua        event bus, settings
   Core/State.lua       reads energy, combo points, auras, cooldowns (secret-aware)
+  Core/Tracker.lua     Slice and Dice / Rupture timers from your casts
   Core/Spec.lua        which spec to play
   Rotations/Rogue.lua  the priorities: pure functions of a state table
   UI/Display.lua       the icon

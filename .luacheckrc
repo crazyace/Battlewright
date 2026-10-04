@@ -11,5 +11,5 @@ read_globals = {
   "CreateFrame", "UIParent", "geterrorhandler", "issecretvalue",
   "UnitClass", "UnitPower", "UnitPowerMax", "GetComboPoints", "UnitHealth", "UnitHealthMax",
   "UnitCanAttack", "UnitExists", "UnitAffectingCombat", "IsStealthed", "GetTime", "GetPowerRegen",
-  "date", "tinsert", "UISpecialFrames", "ChatFontNormal",
+  "date", "tinsert", "UISpecialFrames", "ChatFontNormal", "UnitGUID",
 }

@@ -91,8 +91,8 @@ function Display.Update()
   local m = view.main
   if m then
     f.icon:SetTexture(texture(m.spell))
-    f.icon:SetDesaturated(m.wait > 0)
-    f.wait:SetText(m.wait > 0 and ("%.1f"):format(m.wait) or "")
+    f.icon:SetDesaturated(m.short == true)
+    f.wait:SetText(m.wait and m.wait > 0 and ("%.1f"):format(m.wait) or "")
     f.why:SetText(m.spell .. ": " .. m.why)
   else
     f.icon:SetTexture(QUESTION)

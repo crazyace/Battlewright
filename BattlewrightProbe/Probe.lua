@@ -109,6 +109,49 @@ local function combatSample(out)
       out.known[name] = id
     end
   end
+  -- Round 2 (2026-10-04): energy, target health and auras by index came back
+  -- hidden or blocked in combat, so try the other ways to get them.
+  local snd = out.known and out.known["Slice and Dice"]
+  local ua = C_UnitAuras or {}
+  if snd then note(out, "C_UnitAuras.GetPlayerAuraBySpellID(Slice and Dice)", ua.GetPlayerAuraBySpellID, snd) end
+  note(out, "C_UnitAuras.GetAuraDataBySpellName(player, Slice and Dice)", ua.GetAuraDataBySpellName,
+    "player", "Slice and Dice", "HELPFUL")
+  local auraUtil = rawget(_G, "AuraUtil")
+  note(out, "AuraUtil.FindAuraByName(Slice and Dice)", auraUtil and auraUtil.FindAuraByName, "Slice and Dice", "player", "HELPFUL")
+  note(out, "UnitHealthPercent(target)", rawget(_G, "UnitHealthPercent"), "target")
+  note(out, "UnitPowerPercent(energy)", rawget(_G, "UnitPowerPercent"), "player", Enum and Enum.PowerType and Enum.PowerType.Energy or 3)
+  note(out, "GetPowerRegen", rawget(_G, "GetPowerRegen"))
+  note(out, "UnitGUID(target)", rawget(_G, "UnitGUID"), "target")
+  note(out, "UnitCastingInfo(target)", rawget(_G, "UnitCastingInfo"), "target")
+  note(out, "UnitChannelInfo(target)", rawget(_G, "UnitChannelInfo"), "target")
+  local ss = out.known and out.known["Sinister Strike"]
+  if ss and C_Spell then note(out, "C_Spell.IsSpellInRange(Sinister Strike)", C_Spell.IsSpellInRange, ss, "target") end
+  -- Blizzard's own rotation suggestion (retail's Assisted Combat), if Forever has it.
+  local ac = rawget(_G, "C_AssistedCombat") or {}
+  note(out, "C_AssistedCombat.IsAvailable", ac.IsAvailable)
+  local nextSpell = note(out, "C_AssistedCombat.GetNextCastSpell", ac.GetNextCastSpell)
+  if nextSpell then
+    out.assistedSuggestions = out.assistedSuggestions or {}
+    local name = C_Spell and C_Spell.GetSpellName and select(2, pcall(C_Spell.GetSpellName, nextSpell))
+    local key = tostring(isSecret(name) and nextSpell or name or nextSpell)
+    out.assistedSuggestions[key] = (out.assistedSuggestions[key] or 0) + 1
+  end
+  note(out, "C_AssistedCombat.GetRotationSpells", ac.GetRotationSpells)
+end
+
+-- Events during a recorded fight: are their arguments readable?
+local function noteEvent(out, event, ...)
+  local rec = out["event:" .. event] or { calls = 0, readable = 0, secret = 0, missing = 0, errors = 0 }
+  out["event:" .. event] = rec
+  rec.calls = rec.calls + 1
+  local args = pack(...)
+  local anySecret = false
+  for i = 1, args.n do if isSecret(args[i]) then anySecret = true end end
+  if anySecret then rec.secret = rec.secret + 1 else rec.readable = rec.readable + 1 end
+  if rec.example == nil and not anySecret then rec.example = sanitize({ unpack(args, 1, math.min(args.n, 5)) }) end
+  if event == "COMBAT_LOG_EVENT_UNFILTERED" then
+    note(out, "CombatLogGetCurrentEventInfo", rawget(_G, "CombatLogGetCurrentEventInfo"))
+  end
 end
 
 local function combatStart()
@@ -244,11 +287,21 @@ local events = CreateFrame("Frame")
 for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
   pcall(events.RegisterEvent, events, e)
 end
-events:SetScript("OnEvent", function(_, event)
+-- Events whose arguments a helper could use instead of polling.
+local WATCHED = { "UNIT_SPELLCAST_SUCCEEDED", "UNIT_POWER_FREQUENT", "UNIT_AURA", "PLAYER_TARGET_CHANGED",
+  "COMBAT_LOG_EVENT_UNFILTERED" }
+local watchable = {}
+for _, e in ipairs(WATCHED) do watchable[e] = pcall(events.RegisterEvent, events, e) end
+events:SetScript("OnEvent", function(_, event, ...)
   if event == "PLAYER_REGEN_DISABLED" then
     combatStart()
   elseif event == "PLAYER_REGEN_ENABLED" then
+    if combat.out then combat.out.eventsRegistered = watchable end
     combatEnd()
+  elseif combat.ticker and combat.out then
+    local unit = ...
+    if event:find("^UNIT_") and unit ~= "player" and unit ~= "target" then return end
+    pcall(noteEvent, combat.out, event, ...)
   end
 end)
 

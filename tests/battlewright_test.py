@@ -47,23 +47,24 @@ function UnitClass() return "Rogue", "ROGUE" end
 GAME = { energy = 100, cp = 0, stealthed = false, combat = true, target = true, hp = 0.8,
   buffs = {}, debuffs = {}, known = { ["Sinister Strike"] = 45, ["Eviscerate"] = 35, ["Slice and Dice"] = 25 }, now = 100 }
 function GetTime() return GAME.now end
-function UnitPower(_, t) if t == 4 then return GAME.cp end return GAME.energy end
+function UnitPower(_, t) if t == 4 then return GAME.cp end return GAME.energySecret and SECRET or GAME.energy end
 function UnitPowerMax() return 100 end
 function IsStealthed() return GAME.stealthed end
 function UnitAffectingCombat() return GAME.combat end
 function UnitExists() return GAME.target end
 function UnitCanAttack() return GAME.target end
-function UnitHealth() return GAME.hp * 1000 end
+function UnitHealth() return GAME.hpSecret and SECRET or GAME.hp * 1000 end
 function UnitHealthMax() return 1000 end
 local ids = {}
 C_Spell = {
   GetSpellInfo = function(name) if GAME.known[name] then ids[#ids + 1] = name; return { spellID = #ids } end end,
   GetSpellPowerCost = function(id) return { { cost = GAME.known[ids[id]] } } end,
   GetSpellCooldown = function() return { startTime = 0, duration = 0 } end,
-  IsSpellUsable = function() return true, false end,
+  IsSpellUsable = function() if GAME.noPower then return false, true end return true, false end,
   GetSpellTexture = function(name) return "icon:" .. tostring(name) end,
 }
 C_UnitAuras = { GetAuraDataByIndex = function(unit, i)
+  if GAME.blocked then error("GetAuraDataByIndex(): Auras cannot be accessed when secret while tainted") end
   local list = unit == "player" and GAME.buffs or GAME.debuffs
   local a = list[i]
   if a then return { name = a[1], expirationTime = a[2] } end
@@ -139,6 +140,28 @@ assert f.alpha == 1 and f.icon.tex.startswith("icon:") and ":" in f.why.text, (f
 L.execute("GAME.combat = false")
 L.eval("function(ns) ns.Display.Update() end")(ns)
 assert f.alpha == 0
+
+# Forever in combat (BattlewrightProbe, 2026-10-03): energy and target health
+# secret, auras blocked. Slice and Dice is tracked from our own cast instead,
+# with its duration from the combo points spent (2 points: 12 s).
+L.execute("""SECRET = {}; function issecretvalue(v) return v == SECRET end
+GAME.energySecret, GAME.hpSecret, GAME.blocked = true, true, true""")
+std = {"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25}
+assert show(known=std, cp=2, buffs=[], debuffs=[]) == ("Slice and Dice", 0)
+snd = L.eval("function(ns) return ns.Display.Compute().state.spells['Slice and Dice'].id end")(ns)
+est = L.eval("function(ns) return ns.Display.Compute().state.estimated end")(ns)
+assert est is True
+L.globals().fire("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-1", snd)
+L.execute("GAME.cp = 5")
+assert L.eval("function(ns) return ns.Tracker.expires['Slice and Dice'] end")(ns) == 112  # 100 + 12 s
+assert show(cp=5) == ("Eviscerate", 0)                  # Slice and Dice has 12 s left
+assert show(now=111) == ("Slice and Dice", 0)            # 1 s left: refresh
+# Not enough energy: the game says so even though energy is hidden; no countdown.
+view = L.eval("function(ns) GAME.noPower = true; GAME.cp = 0; GAME.now = 105 return ns.Display.Compute().main end")(ns)
+assert view["spell"] == "Sinister Strike" and view["short"] is True and view["wait"] is None, dict(view.items())
+L.execute("""GAME.noPower, GAME.energySecret, GAME.hpSecret, GAME.blocked = false, false, false, false
+GAME.now, GAME.cp = 100, 0; issecretvalue = nil""")
+L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
 
 # BattlewrightProbe ------------------------------------------------------------------
 # /bwp combat records the next fight: twice a second for up to 30 s, which calls

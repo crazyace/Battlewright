@@ -146,10 +146,21 @@ def summarize(db):
         secret = []
         for name, rec in sorted(run.items()):
             if isinstance(rec, dict) and "calls" in rec:
-                state = ("SECRET" if rec.get("secret") else "readable" if rec.get("readable") else
-                         "missing" if rec.get("missing") else "error")
+                # An error on most calls (e.g. "Auras cannot be accessed when secret
+                # while tainted") means blocked in combat, even if a call before the
+                # fight started worked.
                 if rec.get("secret"):
+                    state = "SECRET"
+                elif rec.get("errors", 0) > rec.get("readable", 0):
+                    state = "BLOCKED"
+                elif rec.get("readable"):
+                    state = "readable"
+                else:
+                    state = "missing" if rec.get("missing") else "error"
+                if state in ("SECRET", "BLOCKED"):
                     secret.append(name)
+                if rec.get("error") and state == "BLOCKED":
+                    state += " - " + str(rec["error"]).split("\n")[0]
                 lines.append(f"   {name}: {state} ({rec.get('readable', 0)} readable, {rec.get('secret', 0)} secret, "
                              f"{rec.get('missing', 0)} missing, {rec.get('errors', 0)} errors)")
         lines.append(f"   known spells: {', '.join(sorted((run.get('known') or {}).keys())) or '-'}")
