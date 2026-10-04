@@ -309,6 +309,30 @@ assert cb() == "Cold Blood", cb()
 L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("GAME.cp = 0; GAME.buffs = {}")
 
+# The game often spends the combo points before it reports the finisher, and a
+# state read in between sees 0 (beta, 2026-10-04: Slice and Dice untracked, so
+# Eviscerate never came up). The points are taken when the cast is sent.
+L.execute("GAME.blocked = true")
+kit3 = {"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25}
+show(known=kit3, cp=4, buffs=[])
+snd = L.eval("function(ns) return ns.Display.Compute().state.spells['Slice and Dice'].id end")(ns)
+L.globals().fire("UNIT_SPELLCAST_SENT", "player", "target", "cast-snd", snd)
+L.execute("GAME.cp = 0"); L.eval("function(ns) ns.Display.Compute() end")(ns)  # a read after the points are gone
+L.globals().fire("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-snd", snd)
+assert abs(L.eval("function(ns) return ns.Tracker.expires['Slice and Dice'] end")(ns) - (GAME_NOW := L.eval("GAME.now")) - 18) < 1e-9
+# Fallback without the sent event: the drop in combo points (5 -> 1, Ruthlessness).
+L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
+L.execute("GAME.cp = 5"); L.globals().fire("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
+L.execute("GAME.cp = 1"); L.globals().fire("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
+L.eval("function(ns) ns.Display.Compute() end")(ns)
+L.globals().fire("UNIT_SPELLCAST_SUCCEEDED", "player", "cast-snd2", snd)
+assert abs(L.eval("function(ns) return ns.Tracker.expires['Slice and Dice'] end")(ns) - GAME_NOW - 21) < 1e-9
+# And with Slice and Dice tracked, 5 combo points mean Eviscerate.
+L.execute("GAME.cp = 5")
+assert show() == ("Eviscerate", 0), show()
+L.execute("GAME.blocked = false; GAME.cp = 0")
+L.eval("function(ns) ns.Tracker.expires = {} ns.Tracker.spent = nil end")(ns)
+
 # Gouge sets up Backstab (dagger): step behind it. Any hit ends the Gouge.
 L.execute("GAME.blocked = true; GAME.mainHand = 15; GAME.guid = 'Creature-G'"); L.globals().fire("PLAYER_EQUIPMENT_CHANGED")
 gk = {"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Backstab": 60, "Gouge": 45}

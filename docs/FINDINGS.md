@@ -135,3 +135,17 @@ secret value. Fixed in:
 - the Kick fade, and how the rotation hands that flag on;
 - the probe's event filter.
 
+
+## Eviscerate never suggested (2026-10-04, in game)
+
+Slice and Dice's timer was taken from the combo points at the last state read. The game
+often spends them before it reports the cast (`UNIT_SPELLCAST_SUCCEEDED`), and
+Battlewright reads 10 times a second, so a read in between saw 0 combo points (or 1 from
+Ruthlessness). Slice and Dice then went untracked, or was tracked as a 1-point 9 s
+cast. It was asked for again and again, and Eviscerate, which comes after it, never came
+up.
+
+**Now:** combo points are taken when the cast is sent (`UNIT_SPELLCAST_SENT`, before the
+game spends them, matched to the cast by its GUID). If that event is missing, Battlewright
+uses the count from just before the game's combo points dropped
+(`UNIT_POWER_FREQUENT` "COMBO_POINTS", within 1.5 s).
