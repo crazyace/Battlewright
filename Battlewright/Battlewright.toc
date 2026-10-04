@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: Battlewright
+## Notes: What to press next: a rotation helper for World of Warcraft: Forever. Gearwright's sibling.
+## Author: Jeff
+## Version: 0.1.0-dev
+## SavedVariables: BattlewrightDB
+## IconTexture: Interface\Icons\Ability_DualWield
+
+Core\Init.lua
+Core\State.lua
+Core\Spec.lua
+Rotations\Rogue.lua
+UI\Display.lua
+Core\Commands.lua
