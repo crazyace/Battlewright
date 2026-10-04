@@ -125,8 +125,8 @@ Lint: `luacheck .`
 
 ## Credits
 
-The guide window's look (stone frame, gold title band, tooltip-edged cards in warm
-brown and gold over parchment) follows **ForeverDungeonJournal** by Exehn.
+The guide window's warm brown-and-gold palette started from **ForeverDungeonJournal**
+by Exehn.
 
 ## License
 

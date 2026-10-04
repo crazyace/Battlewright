@@ -3,35 +3,48 @@
 -- comes from the class file (Rogue.Guide, Rogue.GuidePath), so it always
 -- matches the icon.
 --
--- The look follows ForeverDungeonJournal by Exehn: a stone window in the gold
--- dialog border, a dark title band between thin gold lines, and tooltip-edged
--- cards in its warm "Hall of Thanes" colors over a faint parchment.
+-- The look: a dark window in the game's gold dialog border, a title band
+-- between thin gold lines, a toolbar of tabs under it, and flat cards with a
+-- gold accent edge. Larger type and more room between things than the game's
+-- small tooltip text, so the guide reads at a glance.
 local _, ns = ...
 
 local Guide = {}
 ns.Guide = Guide
 
--- Landscape, like ForeverDungeonJournal: wide enough for a whole cycle on one
--- row of icons. INNER is the scroll area's width (window - page insets 2 x 16
--- - scroll frame insets 8 + 28) less a small margin, so cards never clip.
-local WIDTH, HEIGHT = 600, 520
-local INNER = WIDTH - 32 - 36 - 6
-local ROW_ICON, PATH_ICON = 26, 30
-local CELL, LABEL_WIDTH = 50, 112 -- path: one icon's slot, the lane label column
+-- Landscape: wide enough for a whole cycle on one row of icons. INNER is the
+-- scroll area's width (window - page insets 2 x 18 - scroll frame insets
+-- 14 + 30) less a small margin, so cards never clip.
+local WIDTH, HEIGHT = 760, 640
+local INNER = WIDTH - 36 - 44 - 8
+local TOP_BAR = 108 -- title band + toolbar: the page starts below it
+local ROW_ICON, PATH_ICON = 32, 34
+local CELL, LABEL_WIDTH = 58, 132 -- path: one icon's slot, the lane label column
+local PAD, GAP = 12, 8 -- inside a card, between cards
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
-local EDGE = "Interface\\Tooltips\\UI-Tooltip-Border"
+local FONT = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+local SIZE = { title = 20, header = 15, body = 13, small = 12 }
 local THEME = {
-  window = { 0.045, 0.042, 0.037, 0.99 },
-  band = { 0.14, 0.10, 0.055, 0.96 },
-  gold = { 0.68, 0.52, 0.20 },
-  panel = { 0.24, 0.18, 0.10, 0.90 },
-  border = { 0.52, 0.36, 0.16, 1 },
-  card = { 0.17, 0.11, 0.06, 0.94 },
-  title = { 1.00, 0.80, 0.34 },
-  text = { 0.93, 0.84, 0.66 },
-  muted = { 0.82, 0.74, 0.60 },
+  window = { 0.055, 0.050, 0.045, 0.98 },
+  band = { 0.12, 0.09, 0.05, 0.97 },
+  gold = { 0.86, 0.66, 0.28 },
+  page = { 0.075, 0.067, 0.058, 0.96 },
+  border = { 0.34, 0.27, 0.17, 1 },
+  card = { 0.125, 0.105, 0.085, 0.96 },
+  cardEdge = { 0.27, 0.22, 0.15, 1 },
+  title = { 1.00, 0.82, 0.38 },
+  text = { 0.95, 0.91, 0.83 },
+  muted = { 0.72, 0.67, 0.58 },
+  tabOn = { 0.32, 0.23, 0.10, 1 },
+  tabOff = { 0.11, 0.10, 0.09, 1 },
 }
+
+-- The guide's own type sizes (the game's font objects are tooltip-small).
+local function font(fs, size, flags)
+  if fs.SetFont then fs:SetFont(FONT, size, flags or "") end
+  return fs
+end
 
 local function backdrop(f, bg, edge, edgeSize, inset)
   if not f.SetBackdrop then return end
@@ -39,24 +52,39 @@ local function backdrop(f, bg, edge, edgeSize, inset)
     insets = { left = inset, right = inset, top = inset, bottom = inset } })
 end
 
-local function panel(parent, color)
+-- A flat box with a 1-pixel edge.
+local function flat(f, color, edge)
+  backdrop(f, WHITE, WHITE, 1, 0)
+  if f.SetBackdropColor then
+    f:SetBackdropColor(unpack(color))
+    f:SetBackdropBorderColor(unpack(edge or THEME.cardEdge))
+  end
+end
+
+local function panel(parent, color, accent)
   local p = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-  backdrop(p, WHITE, EDGE, 12, 3)
-  if p.SetBackdropColor then
-    p:SetBackdropColor(unpack(color or THEME.panel))
-    p:SetBackdropBorderColor(unpack(THEME.border))
+  flat(p, color or THEME.card)
+  if accent then -- a gold edge down the left side
+    p.accent = p:CreateTexture(nil, "ARTWORK")
+    p.accent:SetTexture(WHITE)
+    p.accent:SetColorTexture(THEME.gold[1], THEME.gold[2], THEME.gold[3], 0.75)
+    p.accent:SetPoint("TOPLEFT", 1, -1)
+    p.accent:SetPoint("BOTTOMLEFT", 1, 1)
+    p.accent:SetWidth(3)
   end
   return p
 end
 
-local function parchment(f, alpha)
-  local t = f:CreateTexture(nil, "BACKGROUND", nil, -2)
-  t:SetPoint("TOPLEFT", 3, -3)
-  t:SetPoint("BOTTOMRIGHT", -3, 3)
-  t:SetTexture("Interface\\QuestFrame\\QuestBG")
-  t:SetVertexColor(1, 0.95, 0.84)
-  t:SetAlpha(alpha)
-  return t
+-- A tab: flat, gold-edged when it's the one shown.
+local function tabButton(parent, label, width)
+  local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
+  b:SetSize(width, 26)
+  flat(b, THEME.tabOff)
+  b.text = font(b:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.small)
+  b.text:SetPoint("CENTER")
+  b.text:SetText(label)
+  if b.SetHighlightTexture then b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD") end
+  return b
 end
 
 local function line(parent, anchor, point, alpha)
@@ -111,53 +139,54 @@ local function create()
   f:RegisterForDrag("LeftButton")
   f:SetScript("OnDragStart", f.StartMoving)
   f:SetScript("OnDragStop", f.StopMovingOrSizing)
-  backdrop(f, "Interface\\FrameGeneral\\UI-Background-Rock", "Interface\\DialogFrame\\UI-DialogBox-Border", 24, 6)
+  backdrop(f, WHITE, "Interface\\DialogFrame\\UI-DialogBox-Border", 28, 7)
   if f.SetBackdropColor then f:SetBackdropColor(unpack(THEME.window)) end
   if UISpecialFrames then tinsert(UISpecialFrames, "BattlewrightGuide") end -- Escape closes it
 
-  -- Title band.
+  -- Title band: the name, and your spec and level under it.
   local band = f:CreateTexture(nil, "BACKGROUND")
   band:SetTexture(WHITE)
   band:SetColorTexture(unpack(THEME.band))
-  band:SetPoint("TOPLEFT", 12, -10)
-  band:SetPoint("TOPRIGHT", -12, -10)
-  band:SetHeight(44)
-  line(f, band, "TOP", 0.65)
-  line(f, band, "BOTTOM", 0.45)
-  f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  f.title:SetPoint("TOP", 0, -16)
+  band:SetPoint("TOPLEFT", 10, -10)
+  band:SetPoint("TOPRIGHT", -10, -10)
+  band:SetHeight(54)
+  line(f, band, "TOP", 0.7)
+  line(f, band, "BOTTOM", 0.5)
+  f.title = font(f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge"), SIZE.title)
+  f.title:SetPoint("TOP", 0, -17)
   f.title:SetText("Battlewright")
-  f.title:SetTextColor(0.96, 0.79, 0.25)
-  f.subtitle = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  f.subtitle:SetPoint("TOP", f.title, "BOTTOM", 0, -3)
+  f.title:SetTextColor(unpack(THEME.title))
+  f.subtitle = font(f:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.small)
+  f.subtitle:SetPoint("TOP", f.title, "BOTTOM", 0, -4)
   f.subtitle:SetTextColor(unpack(THEME.muted))
   local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-  close:SetPoint("TOPRIGHT", -3, -3)
+  close:SetPoint("TOPRIGHT", -6, -6)
 
-  -- Solo / Group: two small tabs at the left of the title band.
+  -- Toolbar under the band: the pages on the left, Solo / Group on the right.
+  f.pages = {}
+  for i, key in ipairs({ "rotation", "talents" }) do
+    local b = tabButton(f, key == "rotation" and "Rotation" or "Talents", 104)
+    b:SetPoint("TOPLEFT", 18 + (i - 1) * 108, -74)
+    b:SetScript("OnClick", function() Guide.SetPage(key) end)
+    f.pages[key] = b
+  end
   f.modes = {}
   for i, mode in ipairs({ "solo", "group" }) do
-    local b = CreateFrame("Button", nil, f, "BackdropTemplate")
-    b:SetSize(64, 22)
-    b:SetPoint("TOPLEFT", 22 + (i - 1) * 70, -21)
-    backdrop(b, WHITE, EDGE, 10, 3)
-    b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    b.text:SetPoint("CENTER")
-    b.text:SetText(mode == "solo" and "Solo" or "Group")
-    if b.SetHighlightTexture then b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD") end
+    local b = tabButton(f, mode == "solo" and "Solo" or "Group", 84)
+    b:SetPoint("TOPRIGHT", -18 - (2 - i) * 88, -74)
     b:SetScript("OnClick", function() Guide.SetMode(mode) end)
     b.mode = mode
     f.modes[mode] = b
   end
 
-  -- The page: a parchment panel holding the scrolling content.
-  local page = panel(f)
-  page:SetPoint("TOPLEFT", 16, -60)
-  page:SetPoint("BOTTOMRIGHT", -16, 16)
-  parchment(page, 0.18)
+  -- The page: a dark panel holding the scrolling content.
+  local page = panel(f, THEME.page)
+  if page.SetBackdropBorderColor then page:SetBackdropBorderColor(unpack(THEME.border)) end
+  page:SetPoint("TOPLEFT", 18, -TOP_BAR)
+  page:SetPoint("BOTTOMRIGHT", -18, 18)
   local sf = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-  sf:SetPoint("TOPLEFT", 8, -8)
-  sf:SetPoint("BOTTOMRIGHT", -28, 8)
+  sf:SetPoint("TOPLEFT", 14, -14)
+  sf:SetPoint("BOTTOMRIGHT", -30, 14)
   f.content = CreateFrame("Frame", nil, sf)
   f.content:SetSize(INNER, 10)
   sf:SetScrollChild(f.content)
@@ -167,21 +196,6 @@ local function create()
   f.layer:SetAllPoints(f.content)
   if f.layer.SetFrameLevel and f.content.GetFrameLevel then
     f.layer:SetFrameLevel((tonumber(f.content:GetFrameLevel()) or 1) + 5)
-  end
-
-  -- Rotation / Talents: page tabs at the right of the title band.
-  f.pages = {}
-  for i, key in ipairs({ "rotation", "talents" }) do
-    local b = CreateFrame("Button", nil, f, "BackdropTemplate")
-    b:SetSize(76, 22)
-    b:SetPoint("TOPRIGHT", -40 - (2 - i) * 82, -21)
-    backdrop(b, WHITE, EDGE, 10, 3)
-    b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    b.text:SetPoint("CENTER")
-    b.text:SetText(key == "rotation" and "Rotation" or "Talents")
-    if b.SetHighlightTexture then b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD") end
-    b:SetScript("OnClick", function() Guide.SetPage(key) end)
-    f.pages[key] = b
   end
 
   f.headers = {} -- section titles: { text, rule }
@@ -204,12 +218,12 @@ end
 
 local function header(f, i)
   return pooled(f.headers, i, function()
-    local h = { text = f.content:CreateFontString(nil, "OVERLAY", "GameFontNormal") }
+    local h = { text = font(f.content:CreateFontString(nil, "OVERLAY", "GameFontNormal"), SIZE.header) }
     h.text:SetJustifyH("LEFT")
     h.text:SetTextColor(unpack(THEME.title))
     h.rule = f.content:CreateTexture(nil, "ARTWORK")
     h.rule:SetTexture(WHITE)
-    h.rule:SetColorTexture(THEME.gold[1], THEME.gold[2], THEME.gold[3], 0.55)
+    h.rule:SetColorTexture(THEME.gold[1], THEME.gold[2], THEME.gold[3], 0.35)
     h.rule:SetHeight(1)
     return h
   end)
@@ -217,11 +231,12 @@ end
 
 local function card(f, i)
   return pooled(f.lines, i, function()
-    local c = { card = panel(f.content, THEME.card) }
+    local c = { card = panel(f.content, THEME.card, true) }
     c.icon = c.card:CreateTexture(nil, "ARTWORK")
     c.icon:SetSize(ROW_ICON, ROW_ICON)
     c.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    c.text = c.card:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    c.text = font(c.card:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.body)
+    if c.text.SetSpacing then c.text:SetSpacing(3) end
     c.text:SetJustifyH("LEFT")
     c.text:SetTextColor(unpack(THEME.text))
     if c.text.SetWordWrap then c.text:SetWordWrap(true) end
@@ -230,14 +245,14 @@ local function card(f, i)
 end
 
 local function lane(f, i)
-  return pooled(f.lanes, i, function() return panel(f.content, THEME.card) end)
+  return pooled(f.lanes, i, function() return panel(f.content, THEME.card, true) end)
 end
 
 local function cell(f, i)
   return pooled(f.cells, i, function()
     local c = { icon = f.layer:CreateTexture(nil, "OVERLAY"),
-      note = f.layer:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"),
-      count = f.layer:CreateFontString(nil, "OVERLAY", "NumberFontNormal") }
+      note = font(f.layer:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.small - 1),
+      count = font(f.layer:CreateFontString(nil, "OVERLAY", "NumberFontNormal"), SIZE.body, "OUTLINE") }
     c.icon:SetSize(PATH_ICON, PATH_ICON)
     c.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     c.note:SetWidth(CELL + 16)
@@ -249,7 +264,7 @@ end
 
 local function word(f, i)
   return pooled(f.words, i, function()
-    local w = f.layer:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local w = font(f.layer:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.body)
     w:SetJustifyH("LEFT")
     return w
   end)
@@ -279,13 +294,8 @@ local function paintTabs(tabs, current)
   for key, b in pairs(tabs) do
     local on = key == current
     if b.SetBackdropColor then
-      if on then
-        b:SetBackdropColor(0.30, 0.22, 0.10, 0.98)
-        b:SetBackdropBorderColor(THEME.title[1], THEME.title[2], THEME.title[3], 1)
-      else
-        b:SetBackdropColor(0.12, 0.115, 0.105, 0.98)
-        b:SetBackdropBorderColor(0.48, 0.40, 0.27, 1)
-      end
+      b:SetBackdropColor(unpack(on and THEME.tabOn or THEME.tabOff))
+      b:SetBackdropBorderColor(unpack(on and { THEME.title[1], THEME.title[2], THEME.title[3], 1 } or THEME.border))
     end
     b.text:SetTextColor(unpack(on and THEME.title or THEME.muted))
   end
@@ -326,17 +336,17 @@ function Guide.Refresh()
   local function addHeader(text)
     nh = nh + 1
     local h = header(f, nh)
-    y = y - (nh > 1 and 10 or 2)
+    y = y - (nh > 1 and 20 or 4)
     h.text:ClearAllPoints()
     h.text:SetPoint("TOPLEFT", f.content, "TOPLEFT", 2, y)
     h.text:SetText(text)
     h.text:Show()
-    y = y - 16
+    y = y - 22
     h.rule:ClearAllPoints()
     h.rule:SetPoint("TOPLEFT", f.content, "TOPLEFT", 0, y)
     h.rule:SetPoint("TOPRIGHT", f.content, "TOPRIGHT", 0, y)
     h.rule:Show()
-    y = y - 6
+    y = y - 10
   end
 
   local function addCard(text, spell, id)
@@ -344,23 +354,24 @@ function Guide.Refresh()
     local c = card(f, nl)
     local hasIcon = spell or id
     c.text:ClearAllPoints()
-    c.text:SetPoint("TOPLEFT", c.card, "TOPLEFT", hasIcon and (ROW_ICON + 16) or 10, -8)
-    c.text:SetWidth(INNER - (hasIcon and (ROW_ICON + 26) or 20))
+    local left = 4 + PAD -- past the accent edge
+    c.text:SetPoint("TOPLEFT", c.card, "TOPLEFT", hasIcon and (left + ROW_ICON + PAD) or left, -PAD)
+    c.text:SetWidth(INNER - (hasIcon and (left + ROW_ICON + 2 * PAD) or (left + PAD)))
     c.text:SetText(text)
     if hasIcon then
       c.icon:SetTexture(ns.Display.Texture(spell, id))
       c.icon:ClearAllPoints()
-      c.icon:SetPoint("TOPLEFT", c.card, "TOPLEFT", 7, -6)
+      c.icon:SetPoint("TOPLEFT", c.card, "TOPLEFT", left, -(PAD - 2))
       c.icon:Show()
     else
       c.icon:Hide()
     end
-    local height = math.max(stringHeight(c.text, 12) + 16, hasIcon and (ROW_ICON + 12) or 0)
+    local height = math.max(stringHeight(c.text, SIZE.body) + 2 * PAD, hasIcon and (ROW_ICON + 2 * PAD - 4) or 0)
     c.card:ClearAllPoints()
     c.card:SetPoint("TOPLEFT", f.content, "TOPLEFT", 0, y)
     c.card:SetSize(INNER, height)
     c.card:Show()
-    y = y - height - 4
+    y = y - height - GAP
   end
 
   local function addWord(text, width, x, top, color)
@@ -378,18 +389,18 @@ function Guide.Refresh()
   -- One lane: a card with its label on the left and the steps as icons,
   -- wrapping onto a second row when they don't fit.
   local function addLane(l)
-    local rowHeight = PATH_ICON + 18
+    local rowHeight = PATH_ICON + 24
     local top = y
-    local x, rowTop = LABEL_WIDTH, y - 8
-    addWord(l.label, LABEL_WIDTH - 12, 10, rowTop - 8, THEME.title)
+    local x, rowTop = LABEL_WIDTH, y - PAD
+    addWord(l.label, LABEL_WIDTH - 16, 4 + PAD, rowTop - 9, THEME.title)
     for i, st in ipairs(l.steps) do
       if i > 1 then
-        if x + 14 + CELL > INNER - 6 then x, rowTop = LABEL_WIDTH, rowTop - rowHeight end
-        addWord(">", 12, x + 2, rowTop - 9, THEME.muted)
-        x = x + 14
+        if x + 16 + CELL > INNER - 6 then x, rowTop = LABEL_WIDTH, rowTop - rowHeight end
+        addWord(">", 12, x + 3, rowTop - 9, THEME.gold)
+        x = x + 16
       end
       if st.text then
-        local width = #st.text * 6 + 6
+        local width = #st.text * 7 + 8
         if x + width > INNER - 6 then x, rowTop = LABEL_WIDTH, rowTop - rowHeight end
         local w = addWord(st.text, 0, x, rowTop - 9, THEME.muted)
         x = x + math.max(width, stringWidth(w, st.text) + 6)
@@ -419,7 +430,7 @@ function Guide.Refresh()
     box:SetPoint("TOPLEFT", f.content, "TOPLEFT", 0, top)
     box:SetSize(INNER, height)
     box:Show()
-    y = top - height - 4
+    y = top - height - GAP
   end
 
   if not sections then
@@ -443,7 +454,8 @@ end
 
 -- Talents page ----------------------------------------------------------------------
 -- The build picker, your tree with the build laid over it, then the plan.
-local NODE, NODE_GAP, TREE_HEAD = 30, 42, 20
+local NODE, NODE_GAP, TREE_HEAD = 36, 52, 28
+local BUILD_BUTTON = 48
 local TREE_NAMES = { "Assassination", "Combat", "Subtlety" }
 local STATUS = { -- border color: the build's talents, and the rest
   build = { 1.00, 0.80, 0.34 },
@@ -453,11 +465,11 @@ local STATUS = { -- border color: the build's talents, and the rest
 local function buildButton(f, i)
   return pooled(f.builds, i, function()
     local b = CreateFrame("Button", nil, f.content, "BackdropTemplate")
-    backdrop(b, WHITE, EDGE, 10, 3)
-    b.name = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    b.name:SetPoint("TOP", 0, -6)
-    b.tag = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    b.tag:SetPoint("TOP", b.name, "BOTTOM", 0, -2)
+    flat(b, THEME.card)
+    b.name = font(b:CreateFontString(nil, "OVERLAY", "GameFontNormal"), SIZE.body)
+    b.name:SetPoint("TOP", 0, -9)
+    b.tag = font(b:CreateFontString(nil, "OVERLAY", "GameFontHighlight"), SIZE.small - 1)
+    b.tag:SetPoint("TOP", b.name, "BOTTOM", 0, -4)
     b.tag:SetTextColor(unpack(THEME.muted))
     if b.SetHighlightTexture then b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD") end
     return b
@@ -467,14 +479,14 @@ end
 local function node(f, i)
   return pooled(f.nodes, i, function()
     local n = CreateFrame("Button", nil, f.content, "BackdropTemplate")
-    n:SetSize(NODE + 6, NODE + 6)
-    backdrop(n, WHITE, EDGE, 10, 2)
+    n:SetSize(NODE + 4, NODE + 4)
+    backdrop(n, WHITE, WHITE, 2, 0)
     n.icon = n:CreateTexture(nil, "ARTWORK")
     n.icon:SetSize(NODE, NODE)
     n.icon:SetPoint("CENTER")
     n.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    n.rank = n:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
-    n.rank:SetPoint("BOTTOMRIGHT", n, "BOTTOMRIGHT", 3, -3)
+    n.rank = font(n:CreateFontString(nil, "OVERLAY", "NumberFontNormal"), SIZE.small, "OUTLINE")
+    n.rank:SetPoint("BOTTOMRIGHT", n, "BOTTOMRIGHT", 4, -4)
     n:SetScript("OnEnter", function(self)
       if not GameTooltip then return end
       GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -489,7 +501,7 @@ end
 
 local function treeHead(f, i)
   return pooled(f.trees, i, function()
-    local h = f.content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local h = font(f.content:CreateFontString(nil, "OVERLAY", "GameFontNormal"), SIZE.body)
     h:SetJustifyH("CENTER")
     h:SetTextColor(unpack(THEME.title))
     return h
@@ -505,26 +517,26 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
   -- Build picker: the three builds, the best fit marked, the shown one lit.
   y = addHeader("Pick a build", y)
   -- The builds that fit the Solo/Group tab and your weapons, best fit first.
-  local width = (INNER - 4 * (#tg.picks - 1)) / #tg.picks
+  local width = (INNER - GAP * (#tg.picks - 1)) / #tg.picks
   for i, pick in ipairs(tg.picks) do
     local key = pick[1]
     local b = buildButton(f, i)
     local build = rotation.BUILDS[key]
     b:ClearAllPoints()
-    b:SetPoint("TOPLEFT", f.content, "TOPLEFT", (i - 1) * (width + 4), y)
-    b:SetSize(width, 38)
+    b:SetPoint("TOPLEFT", f.content, "TOPLEFT", (i - 1) * (width + GAP), y)
+    b:SetSize(width, BUILD_BUTTON)
     b.name:SetText(build.name)
     b.tag:SetText(key == tg.picks[1][1] and "best fit for you" or "")
     local on = key == tg.key
     if b.SetBackdropColor then
-      b:SetBackdropColor(unpack(on and { 0.30, 0.22, 0.10, 0.98 } or THEME.card))
-      b:SetBackdropBorderColor(unpack(on and { THEME.title[1], THEME.title[2], THEME.title[3], 1 } or THEME.border))
+      b:SetBackdropColor(unpack(on and THEME.tabOn or THEME.card))
+      b:SetBackdropBorderColor(unpack(on and { THEME.title[1], THEME.title[2], THEME.title[3], 1 } or THEME.cardEdge))
     end
     b.name:SetTextColor(unpack(on and THEME.title or THEME.text))
     b:SetScript("OnClick", function() Guide.SetBuild(key) end)
     b:Show()
   end
-  y = y - 38 - 4
+  y = y - BUILD_BUTTON - GAP
 
   -- The tree, from the game's own layout (Traits positions). Without
   -- positions (no Traits tree) only the plan below is shown.
