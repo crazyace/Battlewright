@@ -3,9 +3,9 @@
 -- comes from the class file (Rogue.Guide, Rogue.GuidePath), so it always
 -- matches the icon.
 --
--- The look: a dark window in the game's gold dialog border, a title band
--- between thin gold lines, a toolbar of tabs under it, and flat cards with a
--- gold accent edge. Larger type and more room between things than the game's
+-- The look: a flat graphite window with a 1 px edge, a title band, a toolbar
+-- of tabs under it, and flat cards with a
+-- thin blue accent edge. Larger type and more room between things than the game's
 -- small tooltip text, so the guide reads at a glance.
 local _, ns = ...
 
@@ -25,23 +25,26 @@ local PAD, GAP = 12, 8 -- inside a card, between cards
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local FONT = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
 local SIZE = { title = 20, header = 15, body = 13, small = 12 }
+-- Graphite with one cool accent. Every color is here: change `accent` to
+-- re-tint the whole window.
 local THEME = {
-  window = { 0.055, 0.050, 0.045, 0.98 },
-  band = { 0.12, 0.09, 0.05, 0.97 },
-  gold = { 0.86, 0.66, 0.28 },
-  page = { 0.075, 0.067, 0.058, 0.96 },
-  border = { 0.34, 0.27, 0.17, 1 },
-  card = { 0.125, 0.105, 0.085, 0.96 },
-  cardEdge = { 0.27, 0.22, 0.15, 1 },
-  title = { 1.00, 0.82, 0.38 },
-  text = { 0.95, 0.91, 0.83 },
-  muted = { 0.72, 0.67, 0.58 },
-  tabOn = { 0.32, 0.23, 0.10, 1 },
-  tabOff = { 0.11, 0.10, 0.09, 1 },
-  frameEdge = { 0.62, 0.48, 0.22, 1 },
-  tree = { 0.095, 0.083, 0.070, 0.95 },
-  nodeEdge = { 0.22, 0.20, 0.18, 1 },
+  window = { 0.075, 0.080, 0.090, 0.97 },
+  band = { 0.095, 0.100, 0.112, 1 },
+  accent = { 0.36, 0.64, 1.00 },
+  page = { 0.060, 0.064, 0.072, 0.98 },
+  border = { 0.20, 0.215, 0.24, 1 },
+  card = { 0.105, 0.112, 0.125, 1 },
+  cardEdge = { 0.17, 0.18, 0.20, 1 },
+  title = { 0.96, 0.97, 0.99 },
+  text = { 0.88, 0.90, 0.93 },
+  muted = { 0.58, 0.61, 0.66 },
+  tabOn = { 0.15, 0.17, 0.21, 1 },
+  tabOff = { 0.095, 0.100, 0.112, 1 },
+  frameEdge = { 0.22, 0.235, 0.26, 1 },
+  tree = { 0.085, 0.090, 0.100, 1 },
+  nodeEdge = { 0.19, 0.20, 0.22, 1 },
 }
+local ACCENT = { THEME.accent[1], THEME.accent[2], THEME.accent[3], 1 }
 
 -- The guide's own type sizes (the game's font objects are tooltip-small).
 local function font(fs, size, flags)
@@ -67,18 +70,18 @@ end
 local function panel(parent, color, accent)
   local p = CreateFrame("Frame", nil, parent, "BackdropTemplate")
   flat(p, color or THEME.card)
-  if accent then -- a gold edge down the left side
+  if accent then -- an accent edge down the left side
     p.accent = p:CreateTexture(nil, "ARTWORK")
     p.accent:SetTexture(WHITE)
-    p.accent:SetColorTexture(THEME.gold[1], THEME.gold[2], THEME.gold[3], 0.75)
+    p.accent:SetColorTexture(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.9)
     p.accent:SetPoint("TOPLEFT", 1, -1)
     p.accent:SetPoint("BOTTOMLEFT", 1, 1)
-    p.accent:SetWidth(3)
+    p.accent:SetWidth(2)
   end
   return p
 end
 
--- A tab: flat, gold-edged when it's the one shown.
+-- A tab: flat, accent-edged when it's the one shown.
 local function tabButton(parent, label, width)
   local b = CreateFrame("Button", nil, parent, "BackdropTemplate")
   b:SetSize(width, 26)
@@ -96,7 +99,7 @@ local function line(parent, anchor, point, alpha)
   t:SetPoint(point .. "LEFT", anchor, point .. "LEFT", 0, 0)
   t:SetPoint(point .. "RIGHT", anchor, point .. "RIGHT", 0, 0)
   t:SetHeight(1)
-  t:SetColorTexture(THEME.gold[1], THEME.gold[2], THEME.gold[3], alpha)
+  t:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], alpha)
   return t
 end
 
@@ -143,7 +146,7 @@ local function create()
   f:SetScript("OnDragStart", f.StartMoving)
   f:SetScript("OnDragStop", f.StopMovingOrSizing)
   flat(f, THEME.window, THEME.frameEdge)
-  -- A second, darker line just inside the gold one: a framed edge without the
+  -- A second, darker line just inside the outer one: a framed edge without the
   -- game's heavy stone border.
   local inner = CreateFrame("Frame", nil, f, "BackdropTemplate")
   inner:SetPoint("TOPLEFT", 3, -3)
@@ -176,7 +179,7 @@ local function create()
   close.text:SetPoint("CENTER", 0, 0)
   close.text:SetText("x")
   close.text:SetTextColor(unpack(THEME.muted))
-  close:SetScript("OnEnter", function() close.text:SetTextColor(unpack(THEME.title)) end)
+  close:SetScript("OnEnter", function() close.text:SetTextColor(unpack(THEME.accent)) end)
   close:SetScript("OnLeave", function() close.text:SetTextColor(unpack(THEME.muted)) end)
   close:SetScript("OnClick", function() f:Hide() end)
   f.close = close
@@ -223,7 +226,7 @@ local function create()
     local thumb = bar.GetThumbTexture and bar:GetThumbTexture()
     if thumb then
       thumb:SetSize(6, 48)
-      thumb:SetColorTexture(THEME.gold[1], THEME.gold[2], THEME.gold[3], 0.55)
+      thumb:SetColorTexture(THEME.muted[1], THEME.muted[2], THEME.muted[3], 0.5)
     end
   end
   bar:SetMinMaxValues(0, 0)
@@ -278,7 +281,7 @@ local function header(f, i)
     h.text:SetTextColor(unpack(THEME.title))
     h.rule = f.content:CreateTexture(nil, "ARTWORK")
     h.rule:SetTexture(WHITE)
-    h.rule:SetColorTexture(THEME.gold[1], THEME.gold[2], THEME.gold[3], 0.35)
+    h.rule:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 1)
     h.rule:SetHeight(1)
     return h
   end)
@@ -351,7 +354,7 @@ local function paintTabs(tabs, current)
     local on = key == current
     if b.SetBackdropColor then
       b:SetBackdropColor(unpack(on and THEME.tabOn or THEME.tabOff))
-      b:SetBackdropBorderColor(unpack(on and { THEME.title[1], THEME.title[2], THEME.title[3], 1 } or THEME.border))
+      b:SetBackdropBorderColor(unpack(on and ACCENT or THEME.border))
     end
     b.text:SetTextColor(unpack(on and THEME.title or THEME.muted))
   end
@@ -453,7 +456,7 @@ function Guide.Refresh()
     for i, st in ipairs(l.steps) do
       if i > 1 then
         if x + 16 + CELL > INNER - 6 then x, rowTop = LABEL_WIDTH, rowTop - rowHeight end
-        addWord(">", 12, x + 3, rowTop - 9, THEME.gold)
+        addWord(">", 12, x + 3, rowTop - 9, THEME.muted)
         x = x + 16
       end
       if st.text then
@@ -515,7 +518,7 @@ local NODE, NODE_GAP, TREE_HEAD = 36, 50, 30
 local BUILD_BUTTON = 48
 local TREE_NAMES = { "Assassination", "Combat", "Subtlety" }
 local STATUS = { -- edge color: the build's talents, and the rest
-  build = { 1.00, 0.80, 0.34, 1 },
+  build = ACCENT,
   none = THEME.nodeEdge,
 }
 
@@ -543,11 +546,11 @@ local function node(f, i)
     n.icon:SetSize(NODE, NODE)
     n.icon:SetPoint("CENTER")
     n.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    -- A soft gold glow around the build's talents.
+    -- A faint accent glow around the build's talents.
     n.glow = n:CreateTexture(nil, "OVERLAY")
     n.glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
     if n.glow.SetBlendMode then n.glow:SetBlendMode("ADD") end
-    n.glow:SetVertexColor(1, 0.78, 0.30, 0.55)
+    n.glow:SetVertexColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.35)
     n.glow:SetPoint("CENTER")
     n.glow:SetSize(NODE * 1.75, NODE * 1.75)
     -- The rank in a small dark badge on the corner, like the game's talent window.
@@ -562,7 +565,7 @@ local function node(f, i)
       if not GameTooltip then return end
       GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
       if self.spellID and GameTooltip.SetSpellByID then GameTooltip:SetSpellByID(self.spellID) else GameTooltip:SetText(self.name or "") end
-      if self.line then GameTooltip:AddLine(self.line, 1, 0.82, 0.3, true) end
+      if self.line then GameTooltip:AddLine(self.line, THEME.accent[1], THEME.accent[2], THEME.accent[3], true) end
       GameTooltip:Show()
     end)
     n:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -611,7 +614,7 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
     local on = key == tg.key
     if b.SetBackdropColor then
       b:SetBackdropColor(unpack(on and THEME.tabOn or THEME.card))
-      b:SetBackdropBorderColor(unpack(on and { THEME.title[1], THEME.title[2], THEME.title[3], 1 } or THEME.cardEdge))
+      b:SetBackdropBorderColor(unpack(on and ACCENT or THEME.cardEdge))
     end
     b.name:SetTextColor(unpack(on and THEME.title or THEME.text))
     b:SetScript("OnClick", function() Guide.SetBuild(key) end)
@@ -670,7 +673,7 @@ function Guide.DrawTalents(f, tg, y, addHeader, addCard)
         if lit then nd.glow:Show() else nd.glow:Hide() end
         -- The build's ranks / the talent's max, like the game's talent window.
         nd.rank:SetText(max > 0 and ("%d/%d"):format(goal, max) or "")
-        nd.rank:SetTextColor(unpack(lit and { 1, 0.82, 0 } or THEME.muted))
+        nd.rank:SetTextColor(unpack(lit and THEME.title or THEME.muted))
         if nd.badge.SetBackdropBorderColor then nd.badge:SetBackdropBorderColor(unpack(STATUS[status])) end
         nd.lit = lit
         -- Each tree centered in its box.
