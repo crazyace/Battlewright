@@ -171,14 +171,22 @@ local function cooldown(s, spec)
     return { spell = "Premeditation", why = "before your opener" }
   end
   if not s.inCombat then return nil end
-  -- Gnome racial: the next 3 attacks cost 10% less and hit 10% harder (2 min).
-  if ready(s, "Eureka!") then return { spell = "Eureka!", why = "racial: 3 cheaper, harder attacks" } end
+  -- Eureka! (Gnome racial, 2 min): your next 3 non-periodic damaging abilities
+  -- cost 10% less energy and deal 10% more damage. Every direct hit uses a
+  -- charge (Kick and Gouge too; Garrote and Rupture don't), so press it when
+  -- the next three are your strongest: two builders and the full-combo-point
+  -- finisher (with Mutilate, one Mutilate gets you there), not while the
+  -- target casts (Kick would spend one).
+  local full = known(s, "Mutilate") and 4 or 5
+  local step = known(s, "Mutilate") and 2 or 1
+  if not s.target.casting and s.cp >= full - 2 * step and ready(s, "Eureka!") then
+    return { spell = "Eureka!", why = "racial: your next 3 attacks, finisher included, cost less and hit harder" }
+  end
   if spec == "combat" then
     if ready(s, "Adrenaline Rush") then return { spell = "Adrenaline Rush", why = "ready" } end
     if ready(s, "Blade Flurry") then return { spell = "Blade Flurry", why = "ready (best with two targets)" } end
   elseif spec == "assassination" then
     -- Cold Blood on a full-combo-point Eviscerate (4 with Mutilate, else 5).
-    local full = known(s, "Mutilate") and 4 or 5
     if s.cp >= full and ready(s, "Cold Blood") then return { spell = "Cold Blood", why = "before your finisher" } end
   end
   if ready(s, "Preparation") and known(s, "Vanish") and not ready(s, "Vanish") and not ready(s, "Evasion") then

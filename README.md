@@ -57,7 +57,8 @@ The theory behind these (talents, builds, abilities by level, weapons) is in
    25% (when its health is readable).
 6. Build: Riposte after a parry; Ambush out of stealth when Cutthroat allows it; Mutilate (Assassination), Ghostly Strike or
    Hemorrhage (Subtlety), Backstab (dagger + `/bw behind`, or after your Gouge), else Sinister Strike.
-7. Cooldowns (small icon): Eureka! (Gnome racial), Kick when the target casts (shown big; the game hides it
+7. Cooldowns (small icon): Eureka! (Gnome racial) at 3 combo points (2 with Mutilate),
+   so its 3 charges cover your finisher, Kick when the target casts (shown big; the game hides it
    for casts that can't be interrupted), Adrenaline Rush and Blade Flurry (Combat), Cold Blood at full combo
    points (Assassination), Preparation once Vanish and Evasion are used.
 

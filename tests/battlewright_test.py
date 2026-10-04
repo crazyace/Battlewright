@@ -288,9 +288,17 @@ L.globals().SlashCmdList.BATTLEWRIGHT("spec auto")
 L.execute("GAME.sndAura = nil; GAME.blocked = false; GAME.energySecret = false; GAME.guid = nil; issecretvalue = nil")
 L.eval("function(ns) ns.Tracker.expires = {} end")(ns)
 
-# Eureka! (Gnome racial) is suggested as a cooldown in combat.
+# Eureka! (Gnome racial): 3 charges, so it waits until the next three attacks
+# are two builders and the 5-point finisher: 3+ combo points.
+eureka = lambda: L.eval("function(ns) local v = ns.Display.Compute() return v.cooldown and v.cooldown.spell end")(ns)
 show(known={"Sinister Strike": 45, "Eviscerate": 35, "Slice and Dice": 25, "Eureka!": 0}, cp=1, buffs=[["Slice and Dice", 130]])
-assert L.eval("function(ns) local v = ns.Display.Compute() return v.cooldown and v.cooldown.spell end")(ns) == "Eureka!"
+assert eureka() is None
+show(cp=3)
+assert eureka() == "Eureka!"
+# ...but not while the target casts: Kick comes first and would use a charge.
+L.execute("GAME.casting = 'yes'")
+assert eureka() is None
+L.execute("GAME.casting = nil")
 # Cold Blood waits for full combo points: 5 without Mutilate.
 L.globals().SlashCmdList.BATTLEWRIGHT("spec assassination")
 cb = lambda: L.eval("function(ns) local v = ns.Display.Compute() return v.cooldown and v.cooldown.spell end")(ns)

@@ -190,7 +190,10 @@ in groups from behind.
 3. **Eviscerate** at 5 combo points (4 with Mutilate, so a 2-point Mutilate isn't
    wasted). **Cold Blood** goes just before it.
 4. **Rupture** only on elites and bosses.
-5. **Eureka!** whenever it's ready in a fight (2 min).
+5. **Eureka!** (2 min) at 3 combo points (2 with Mutilate). Its 3 charges then cover
+   two builders and your full-combo-point Eviscerate. Every direct hit uses a charge,
+   Kick and Gouge included; Garrote and Rupture (periodic) don't. So don't press it
+   while the mob is casting.
 
 **Stealth:** walk behind the mob, then **Ambush** with a dagger, else **Garrote**.
 Remorseless Attacks makes the opener after a kill likely to crit, and it lasts 20 s, so
